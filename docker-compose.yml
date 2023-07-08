@@ -1,0 +1,41 @@
+version: '3'
+
+services:
+  mailer-server:
+    container_name: mailer-server
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      REDIS_HOST: "accounts-backend-db"
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    networks:
+      - mailer-network
+    depends_on:
+      - mailer-redis
+
+  mailer-redis:
+    image: redis:7.0-alpine
+    container_name: mailer-redis
+    restart: always
+#    ports:
+#      - '${REDIS_PORT}:${REDIS_PORT}'
+    command: "redis-server --loglevel warning --port ${REDIS_PORT}"
+    volumes:
+      - redis-data:/data
+    networks:
+      - mailer-network
+
+# VOLUMES
+volumes:
+  redis-data:
+    driver: local
+
+# NETWORKS
+networks:
+  mailer-network:
+    driver: bridge

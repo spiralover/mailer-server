@@ -13,8 +13,7 @@ services:
       REDIS_HOST: "accounts-backend-db"
     ports:
       - "${SERVER_PORT}:${SERVER_PORT}"
-    networks:
-      - mailer-network
+    network_mode: host
     depends_on:
       - mailer-redis
 
@@ -27,15 +26,9 @@ services:
     command: "redis-server --loglevel warning --port ${REDIS_PORT}"
     volumes:
       - redis-data:/data
-    networks:
-      - mailer-network
+    network_mode: host
 
 # VOLUMES
 volumes:
   redis-data:
     driver: local
-
-# NETWORKS
-networks:
-  mailer-network:
-    driver: bridge

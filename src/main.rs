@@ -4,7 +4,7 @@ use actix_web::{App, HttpServer};
 use actix_web::middleware::Logger;
 use actix_web::web::Data;
 use env_logger::Env;
-use log::info;
+use log::{info};
 use redis::{Client};
 
 use crate::core::mail_service::{create_smtp_client};
@@ -30,8 +30,6 @@ async fn main() -> std::io::Result<()> {
     let redis_url: String = env::var("REDIS_URL").unwrap();
     let redis_client = redis::Client::open(redis_url).unwrap();
 
-    env::set_var("RUST_LOG", "debug");
-    env::set_var("RUST_BACKTRACE", "1");
     env_logger::init_from_env(Env::default().default_filter_or("info"));
 
     info!("starting server at http://localhost:{}", port);

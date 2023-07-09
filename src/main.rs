@@ -6,6 +6,7 @@ use actix_web::web::Data;
 use env_logger::Env;
 use log::{info};
 use redis::{Client};
+use crate::core::database::create_database_connection;
 
 use crate::core::mail_service::{create_smtp_client};
 use crate::http::kernel::{actix_default_service, register_routes};
@@ -15,6 +16,8 @@ use crate::mailer::thread_namer::remove_name_lock_file;
 mod http;
 mod core;
 mod mailer;
+mod models;
+mod schema;
 
 pub struct AppState {
     redis: Client,
@@ -35,12 +38,15 @@ async fn main() -> std::io::Result<()> {
     info!("starting server at http://localhost:{}", port);
 
     let smtp = create_smtp_client();
+    let db_pool = create_database_connection();
+
     remove_name_lock_file();
 
     HttpServer::new(move || {
-        create_background_service(redis_client.clone(), &smtp.clone(), 4);
+        create_background_service(&db_pool.clone(), redis_client.clone(), &smtp.clone(), 4);
 
         App::new()
+            .app_data(Data::new(db_pool.clone()))
             .app_data(Data::new(AppState { redis: redis_client.clone() }))
             .configure(register_routes)
             // .wrap(middleware::NormalizePath::new(TrailingSlash::MergeOnly))

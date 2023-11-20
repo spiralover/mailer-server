@@ -1,0 +1,24 @@
+[package]
+name = "executor"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix-web = { workspace = true }
+dotenv = { workspace = true }
+env_logger = { workspace = true }
+log = { workspace = true }
+r2d2 = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+serde = { workspace = true }
+uuid = { workspace = true }
+redis = { workspace = true }
+futures-util = { workspace = true }
+diesel = { workspace = true }
+reqwest = { workspace = true }
+rev_lines = "0.3.0"
+core = { path = "../../core" }
+

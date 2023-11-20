@@ -1,0 +1,10 @@
+/.idea
+/target
+/test
+/resources/static/uploads
+
+.env
+.mailer_name_lock
+apps/admin/.env
+apps/mailer/.env
+users.json

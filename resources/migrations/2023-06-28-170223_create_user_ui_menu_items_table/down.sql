@@ -1,0 +1,1 @@
+DROP TABLE user_ui_menu_items;

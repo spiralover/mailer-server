@@ -1,0 +1,36 @@
+[workspace]
+resolver="2"
+members = [
+    "core",
+    "apps/user",
+    "apps/executor"
+]
+
+[workspace.dependencies]
+actix-web = "4"
+actix-files = "0.6"
+actix-cors = "0.6"
+tera = "1"
+dotenv = "0.15"
+log = "0.4"
+r2d2 = "0.8"
+rust-argon2 = "1"
+env_logger = "0.10"
+serde_json = "1.0"
+derive_more = "0.99.0"
+nanoid = "0.4.0"
+strum = "0.25.0"
+rand = "0.8.5"
+futures = "0.3"
+actix-multipart = "0.6.0"
+strum_macros = "0.25.1"
+jsonwebtoken = "9.1.0"
+serde = { version = "1.0", features = ["derive"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+reqwest = { version = "0.11", features = ["json"] }
+validator = { version = "0.16", features = ["derive"] }
+lettre = { version = "0.10", features = ["tokio1-native-tls"] }
+futures-util = { version = "0.3", default-features = false, features = ["std"] }
+diesel = { version = "2", features = ["postgres", "r2d2", "uuid", "chrono", "serde_json"] }
+redis = { version = "0.23.0", default-features = false, features = ["tokio-comp", "connection-manager"] }

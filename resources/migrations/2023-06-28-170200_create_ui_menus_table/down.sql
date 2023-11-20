@@ -1,0 +1,1 @@
+DROP TABLE ui_menus;

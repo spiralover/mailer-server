@@ -1,0 +1,33 @@
+[package]
+name = "user"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix-web = { workspace = true }
+actix-files = { workspace = true }
+actix-cors = { workspace = true }
+tera = { workspace = true }
+dotenv = { workspace = true }
+log = { workspace = true }
+r2d2 = { workspace = true }
+rust-argon2 = { workspace = true }
+env_logger = { workspace = true }
+serde_json = { workspace = true }
+derive_more = { workspace = true }
+nanoid = { workspace = true }
+strum = { workspace = true }
+strum_macros = { workspace = true }
+jsonwebtoken = { workspace = true }
+serde = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+reqwest = { workspace = true }
+validator = { workspace = true }
+diesel = { workspace = true }
+futures-util = { workspace = true }
+actix-multipart = { workspace = true }
+rand = { workspace = true }
+core = { path = "../../core", version = "0.1.0" }

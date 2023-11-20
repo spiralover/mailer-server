@@ -1,0 +1,9 @@
+/.git
+/.idea
+/.github
+/.gitignore
+#/apps
+#/core
+/target
+
+/.mailer_name_lock

@@ -16,7 +16,7 @@ services:
     volumes:
       - "/spiralover/mailer/uploads:/var/www/mailer/static/uploads"
     ports:
-      - "127.0.0.1:4301:4301"
+      - "127.0.0.1:4401:4401"
     networks:
       - mailer-main
     extra_hosts:
@@ -25,7 +25,7 @@ services:
       - database
       - redis
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://user-service:4300/system/docker-health-check" ]
+      test: [ "CMD", "curl", "-f", "http://user-service:4401/system/docker-health-check" ]
       interval: 1m30s
       timeout: 5s
       retries: 3
@@ -44,7 +44,7 @@ services:
       DB_HOST: "database"
       DB_PORT: "${DB_PORT}"
     ports:
-      - "127.0.0.1:4302:4302"
+      - "127.0.0.1:4402:4402"
     networks:
       - mailer-main
     extra_hosts:
@@ -53,7 +53,7 @@ services:
       - database
       - redis
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://executor-service:4301/system/docker-health-check" ]
+      test: [ "CMD", "curl", "-f", "http://executor-service:4402/system/docker-health-check" ]
       interval: 1m30s
       timeout: 5s
       retries: 3

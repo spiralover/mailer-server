@@ -68,6 +68,7 @@ async fn mails(id: Path<Uuid>, req: HttpRequest, form: Json<MailPayload>) -> Htt
     // Verify user has access to this neuron
     let app_id = ApplicationRepository.find_owned_by_id(req.get_db_pool(), *id, req.auth_id())?;
 
+    let total_mails = form.mails.len();
     for mail in form.mails.clone() {
         let _result = MailService.push_to_awaiting_queue(
             app,
@@ -85,7 +86,12 @@ async fn mails(id: Path<Uuid>, req: HttpRequest, form: Json<MailPayload>) -> Htt
         );
     }
 
-    AppMessage::SuccessMessage("mail(s) queued").ok()
+    let message = Box::new(match total_mails <= 1 {
+        true => format!("{} mail queued", total_mails),
+        false => format!("{} mails queued", total_mails),
+    });
+
+    AppMessage::SuccessMessage(Box::leak(message)).ok()
 }
 
 #[patch("{id}/activate")]

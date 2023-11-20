@@ -17,18 +17,18 @@ Looking for the [frontend application](https://github.com/mailer/mailer-frontend
       },
       "receiver": [
         {
-          "name": "Ahmard",
-          "email": "super.admin@spiralover.com"
+          "name": "Super Admin",
+          "email": "super.admin@example.com"
         },
         {
           "name": "Ahmad Mustapha",
-          "email": "ahmard.mu@gmail.com"
+          "email": "ahmard.mustapha@example.com"
         }
       ],
       "cc": [
         {
-          "name": "Ahmad Mustapha",
-          "email": "ahmard.mu@gmail.com"
+          "name": "Jane Doe",
+          "email": "jane.doe@example.com"
         }
       ],
       "bcc": [],

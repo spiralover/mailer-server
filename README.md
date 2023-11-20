@@ -1,5 +1,5 @@
-# Mailer Backend
-Mailer Backend Application
+# Mailer Server
+Mail Routing Server
 
 Looking for the [frontend application](https://github.com/mailer/mailer-frontend)?
 

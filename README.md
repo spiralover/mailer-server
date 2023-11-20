@@ -2,9 +2,17 @@
 Mail Routing Server
 
 Looking for the [frontend application](https://github.com/mailer/mailer-frontend)?
+## Setup
 
-## Todo
-- Clear up temp files after certain interval
+Execute below command to install DB tables & seed default data
+```shell
+docker exec -i mailer-user-service sh app-setup.sh
+```
+
+Execute below command to refresh DB, re-install tables & seed data
+```shell
+docker exec -i mailer-user-service sh app-refresh-setup.sh
+```
 
 ## Payload Sample
 ```json
@@ -39,3 +47,6 @@ Looking for the [frontend application](https://github.com/mailer/mailer-frontend
   ]
 }
 ```
+
+## Todo
+- Clear up temp files after certain interval

@@ -5,6 +5,6 @@
 
 /.env
 /.mailer_name_lock
-/apps/admin/.env
-/apps/mailer/.env
+/apps/user/.env
+/apps/executor/.env
 /users.json

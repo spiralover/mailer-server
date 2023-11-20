@@ -13,7 +13,7 @@ Looking for the [frontend application](https://github.com/mailer/mailer-frontend
     {
       "from": {
         "name": "SpiralOver",
-        "email": "noreply@spiralover.com"
+        "email": "noreply@example.com"
       },
       "receiver": [
         {

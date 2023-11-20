@@ -22,7 +22,7 @@ Looking for the [frontend application](https://github.com/mailer/mailer-frontend
         },
         {
           "name": "Ahmad Mustapha",
-          "email": "ahmard.mustapha@example.com"
+          "email": "ahmad.mustapha@example.com"
         }
       ],
       "cc": [

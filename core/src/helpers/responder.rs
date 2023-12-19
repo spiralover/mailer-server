@@ -1,10 +1,10 @@
 use actix_web::http::StatusCode;
 use actix_web::HttpResponse;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
-use crate::helpers::db_pagination::PaginationResult;
+use crate::helpers::db_pagination::PageData;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct JsonResponse<T: Serialize> {
     code: u16,
     success: bool,
@@ -13,16 +13,16 @@ pub struct JsonResponse<T: Serialize> {
     data: T,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct JsonPaginationResponse<T: Serialize> {
-    success: bool,
-    total_pages: i64,
-    total_records: i64,
-    status: u16,
-    data: T,
+#[derive(Serialize)]
+pub struct PaginationResponse<T: Serialize> {
+    pub(crate) success: bool,
+    pub(crate) total_pages: i64,
+    pub(crate) total_records: i64,
+    pub(crate) status: u16,
+    pub(crate) data: Vec<T>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct JsonMessageResponse {}
 
 pub fn json<T: Serialize>(data: T, status: StatusCode) -> HttpResponse {
@@ -42,9 +42,9 @@ pub fn json_success<T: Serialize>(data: T, message: Option<String>) -> HttpRespo
     )
 }
 
-pub fn json_pagination<T: Serialize>(data: PaginationResult<T>) -> HttpResponse {
+pub fn json_pagination<T: Serialize>(data: PageData<T>) -> HttpResponse {
     json(
-        JsonPaginationResponse {
+        PaginationResponse {
             success: true,
             status: 200,
             data: data.records,

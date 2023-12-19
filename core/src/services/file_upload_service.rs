@@ -1,5 +1,5 @@
-use std::ops::DerefMut;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use actix_multipart::form::tempfile::TempFile;
 use diesel::SaveChangesDsl;
@@ -9,13 +9,13 @@ use reqwest::StatusCode;
 use uuid::Uuid;
 
 use crate::app_state::AppState;
-use crate::entities::Entities;
 use crate::enums::app_message::AppMessage::{ErrorMessage, WarningMessage};
-use crate::helpers::db::current_timestamp;
-use crate::helpers::get_db_conn;
+use crate::enums::entities::Entities;
+use crate::helpers::db::DatabaseConnectionHelper;
 use crate::helpers::string::string;
+use crate::helpers::time::current_timestamp;
+use crate::helpers::DBPool;
 use crate::models::file_upload::{FileUpload, FileUploadCreateForm, FileUploadData};
-use crate::models::DBPool;
 use crate::repositories::file_upload_repository::FileUploadRepository;
 use crate::results::app_result::FormatAppResult;
 use crate::results::AppResult;
@@ -34,7 +34,7 @@ impl FileUploadService {
 
     pub fn upload(
         &mut self,
-        app: &AppState,
+        app: Arc<AppState>,
         file: TempFile,
         data: FileUploadData,
     ) -> AppResult<FileUpload> {
@@ -47,10 +47,12 @@ impl FileUploadService {
                 ));
             }
             length if length > (max_file_size as usize) => {
-                let msg = Box::leak(Box::new(format!(
+                let msg = format!(
                     "The uploaded file is too large. Maximum size is {} bytes.",
                     max_file_size
-                )));
+                );
+
+                let msg: &'static str = Box::leak(Box::new(msg));
                 return Err(WarningMessage(msg));
             }
             _ => {}
@@ -73,7 +75,7 @@ impl FileUploadService {
         let file_ext = *split_name.last().unwrap();
         let new_file_name = format!("{}.{}", nanoid!(), file_ext);
 
-        let mut file_path = PathBuf::from("static/uploads");
+        let mut file_path = PathBuf::from("resources/static/uploads");
         file_path.push(new_file_name.clone());
 
         let uploaded_file_path = match std::fs::copy(temp_path, file_path.clone()) {
@@ -88,7 +90,7 @@ impl FileUploadService {
         }?;
 
         FileUploadService.create(
-            app.get_db_pool(),
+            app.database(),
             data.uploader_id,
             FileUploadCreateForm {
                 owner_id: data.owner_id,
@@ -123,7 +125,7 @@ impl FileUploadService {
         file.owner_id = owner_id;
         file.owner_type = owner_type.to_string();
         file.updated_at = current_timestamp();
-        file.save_changes::<FileUpload>(get_db_conn(pool).deref_mut())
+        file.save_changes::<FileUpload>(&mut pool.conn())
             .into_app_result()
     }
 }

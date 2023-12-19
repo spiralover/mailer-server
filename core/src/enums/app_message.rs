@@ -7,8 +7,8 @@ use serde::Serialize;
 use validator::ValidationErrors;
 
 use crate::enums::app_message::AppMessage::{
-    DatabaseEntityNotFound, DatabaseError, EntityNotFound, ErrorMessage, InvalidUUID, IoError,
-    RedisError, SuccessMessage, WarningMessage,
+    BlockingError, DatabaseEntityNotFound, DatabaseError, EntityNotFound, ErrorMessage,
+    InvalidUUID, IoError, RedisError, SuccessMessage, WarningMessage,
 };
 use crate::helpers::responder::{
     json_entity_not_found_response, json_error, json_error_message, json_error_message_status,
@@ -30,8 +30,8 @@ pub enum AppMessage {
     WarningMessage(&'static str),
     SuccessMessage(&'static str),
     ErrorMessage(String, StatusCode),
-    #[allow(dead_code)]
     FormValidationError(ValidationErrors),
+    BlockingError(actix_web::error::BlockingError),
 }
 
 #[derive(Serialize)]
@@ -68,6 +68,7 @@ fn get_message(status: &AppMessage) -> String {
         DatabaseEntityNotFound => string("Such entity does not exits"),
         IoError(error) => error.to_string(),
         RedisError(error) => error.to_string(),
+        BlockingError(error) => error.to_string(),
         DatabaseError(message) => message.clone(),
         WarningMessage(message) => message.to_string(),
         SuccessMessage(message) => message.to_string(),
@@ -89,6 +90,10 @@ pub fn send_response(status: &AppMessage) -> HttpResponse {
         }
         DatabaseError(message) => {
             error!("DB Error: {}", message);
+            json_error_message_status("Internal Server Error", StatusCode::INTERNAL_SERVER_ERROR)
+        }
+        BlockingError(message) => {
+            error!("Blocking Error: {}", message);
             json_error_message_status("Internal Server Error", StatusCode::INTERNAL_SERVER_ERROR)
         }
         ErrorMessage(message, status) => json_error_message_status(message, *status),
@@ -129,6 +134,7 @@ impl ResponseError for AppMessage {
             IoError(_msg) => StatusCode::INTERNAL_SERVER_ERROR,
             RedisError(_msg) => StatusCode::INTERNAL_SERVER_ERROR,
             DatabaseError(_msg) => StatusCode::INTERNAL_SERVER_ERROR,
+            BlockingError(_msg) => StatusCode::INTERNAL_SERVER_ERROR,
             ErrorMessage(_, status) => *status,
             AppMessage::UnAuthorized => StatusCode::UNAUTHORIZED,
             AppMessage::FormValidationError(_) => StatusCode::BAD_REQUEST,

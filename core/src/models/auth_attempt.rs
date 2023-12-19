@@ -1,7 +1,6 @@
-use std::fmt::{Display, Formatter};
-
 use diesel::{AsChangeset, Identifiable, Insertable, Queryable};
 use serde::{Deserialize, Serialize};
+use std::fmt::{Display, Formatter};
 use uuid::Uuid;
 
 use super::super::schema::auth_attempts;
@@ -39,6 +38,8 @@ pub enum AuthAttemptStatus {
     LoggedIn,
     LoginDenied,
     InvalidCredential,
+    InvalidatedToken,
+    PendingVerification,
 }
 
 impl Display for AuthAttemptStatus {
@@ -47,6 +48,8 @@ impl Display for AuthAttemptStatus {
             AuthAttemptStatus::LoggedIn => "logged_in",
             AuthAttemptStatus::LoginDenied => "logged_denied",
             AuthAttemptStatus::InvalidCredential => "invalid_credential",
+            AuthAttemptStatus::InvalidatedToken => "invalidated_token",
+            AuthAttemptStatus::PendingVerification => "pending_verification",
         };
 
         write!(f, "{}", status)

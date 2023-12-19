@@ -1,5 +1,5 @@
-use crate::helpers::db::current_timestamp;
-use crate::helpers::db_pagination::{Paginate, PaginationResult};
+use crate::helpers::time::current_timestamp;
+use crate::helpers::db_pagination::{Paginate, PageData};
 use crate::helpers::get_db_conn;
 use crate::helpers::http::QueryParams;
 use crate::models::mail_error::MailError;
@@ -18,7 +18,7 @@ impl MailErrorRepository {
         &mut self,
         pool: &DBPool,
         query_params: QueryParams,
-    ) -> AppResult<PaginationResult<MailError>> {
+    ) -> AppResult<PageData<MailError>> {
         let search_format = format!("%{}%", query_params.get_search_query());
         mail_errors::table
             .filter(mail_errors::smtp_error.ilike(search_format.clone()))

@@ -1,9 +1,8 @@
-use uuid::Uuid;
-
-use crate::models::role_permission::RolePermission;
-use crate::models::DBPool;
-use crate::repositories::role_permission_repository::RolePermissionRepository;
 use crate::results::AppResult;
+use crate::models::role_permission::RolePermission;
+use crate::helpers::DBPool;
+use crate::repositories::role_permission_repository::RolePermissionRepository;
+use uuid::Uuid;
 
 pub struct RolePermissionService;
 

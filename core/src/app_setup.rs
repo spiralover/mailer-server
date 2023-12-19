@@ -16,34 +16,21 @@ use crate::models::DBPool;
 use crate::models::mail::MailBox;
 
 pub async fn make_app_state() -> AppState {
-    let db_url: String = env::var("DATABASE_DSN").unwrap();
-
-    // create db connection pool
-    let manager = ConnectionManager::<PgConnection>::new(db_url);
-    let database_pool: DBPool = r2d2::Pool::builder()
-        .build(manager)
-        .expect("Failed to create database pool.");
+    let database_pool = establish_database_connection();
 
     // templating
     let tpl_dir = get_cwd() + "/resources/templates/**/*";
     let tera_templating = Tera::new(tpl_dir.as_str()).unwrap();
 
-    // allowed origins
-    let url_str = env::var("ALLOWED_ORIGINS").unwrap();
-    let origins: Vec<&str> = url_str.split(',').collect();
-    let origins: Vec<String> = origins.iter().map(|o| o.trim().to_string()).collect();
-
-    // redis
-    let redis_url: String = env::var("REDIS_DSN").unwrap();
-    let redis_client = Client::open(redis_url).unwrap();
+    let redis = establish_redis_connection();
 
     AppState {
         tera: tera_templating,
-        database: database_pool,
-        redis: redis_client,
+        database: database_pool.clone(),
+        redis: redis.clone(),
         smtp: create_smtp_client(),
         pulse_count: Arc::new(Mutex::new(0)),
-        allowed_origins: origins,
+        allowed_origins: get_allowed_origins(),
         app_name: env::var("APP_NAME").unwrap(),
         app_desc: env::var("APP_DESC").unwrap(),
         app_key: env::var("APP_KEY").unwrap(),
@@ -58,14 +45,37 @@ pub async fn make_app_state() -> AppState {
         max_image_upload_size: env::var("MAX_IMAGE_UPLOAD_SIZE").unwrap().parse().unwrap(),
 
         // redis
-        redis_queues: AppRedisQueues {
-            awaiting: env::var("REDIS_QUEUE_AWAITING").unwrap(),
-            processing: env::var("REDIS_QUEUE_PROCESSING").unwrap(),
-            retrying: env::var("REDIS_QUEUE_RETRYING").unwrap(),
-            success: env::var("REDIS_QUEUE_SUCCESS").unwrap(),
-            failure: env::var("REDIS_QUEUE_FAILURE").unwrap(),
-            callback: env::var("REDIS_QUEUE_CALLBACK").unwrap(),
-        },
+        redis_queues: get_redis_queues(),
+    }
+}
+
+pub fn get_server_host_config() -> (String, u16) {
+    let host: String = env::var("SERVER_HOST").unwrap();
+    let port: u16 = env::var("SERVER_PORT").unwrap().parse().unwrap();
+    (host, port)
+}
+
+pub fn establish_redis_connection() -> Client {
+    let redis_url: String = env::var("REDIS_DSN").unwrap();
+    Client::open(redis_url).unwrap()
+}
+
+pub fn establish_database_connection() -> DBPool {
+    let db_url: String = env::var("DATABASE_DSN").unwrap();
+    let manager = ConnectionManager::<PgConnection>::new(db_url);
+    r2d2::Pool::builder()
+        .build(manager)
+        .expect("Failed to create database pool.")
+}
+
+pub fn get_redis_queues() -> AppRedisQueues {
+    AppRedisQueues {
+        awaiting: env::var("REDIS_QUEUE_AWAITING").unwrap(),
+        processing: env::var("REDIS_QUEUE_PROCESSING").unwrap(),
+        retrying: env::var("REDIS_QUEUE_RETRYING").unwrap(),
+        success: env::var("REDIS_QUEUE_SUCCESS").unwrap(),
+        failure: env::var("REDIS_QUEUE_FAILURE").unwrap(),
+        callback: env::var("REDIS_QUEUE_CALLBACK").unwrap(),
     }
 }
 
@@ -102,6 +112,12 @@ pub(crate) fn create_smtp_client() -> SmtpTransport {
     }
 }
 
+pub fn get_allowed_origins() -> Vec<String> {
+    let url_str = env::var("ALLOWED_ORIGINS").unwrap();
+    let origins: Vec<&str> = url_str.split(',').collect();
+    origins.iter().map(|o| o.trim().to_string()).collect()
+}
+
 pub fn load_environment_variables(service: &str) {
     info!("root directory: {:?}", service);
 
@@ -120,4 +136,33 @@ pub fn load_environment_variables(service: &str) {
         info!("loading env file: .env.main");
         dotenv::from_filename(".env.main").ok();
     }
+
+    // load project level .env.main
+    let filename = format!(".env.{}", service);
+    if Path::new(filename.as_str()).exists() {
+        info!("loading env file: {}", filename);
+        dotenv::from_filename(filename).ok();
+    }
+}
+
+pub fn make_thread_name(worker_count: Arc<Mutex<usize>>, workers: Vec<String>) -> (usize, String) {
+    let mut worker_index = worker_count.lock().unwrap();
+    let thread_name = workers.get(worker_index.to_owned()).unwrap();
+    *worker_index += 1;
+    (*worker_index - 1, thread_name.to_owned())
+}
+
+pub fn get_worker_configs() -> (i8, Vec<String>) {
+    let tasks_per_worker: i8 = env::var("SERVER_TASKS_PER_WORKER")
+        .unwrap()
+        .parse()
+        .unwrap();
+
+    let workers: Vec<String> = env::var("SERVER_WORKERS")
+        .unwrap()
+        .split(',')
+        .map(|s| s.to_string())
+        .collect();
+
+    (tasks_per_worker, workers)
 }

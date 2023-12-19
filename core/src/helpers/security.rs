@@ -13,8 +13,15 @@ pub struct AuthTokenData {
     pub expires_in: i64,
 }
 
-pub fn generate_token(payload: String, header: Option<Header>) -> AuthTokenData {
-    let token_lifetime_in_minutes: i64 = env::var("AUTH_TOKEN_LIFETIME").unwrap().parse().unwrap();
+pub fn generate_token(
+    payload: String,
+    header: Option<Header>,
+    lifetime: Option<i64>,
+) -> AuthTokenData {
+    let token_lifetime_in_minutes: i64 = match lifetime {
+        Some(l) => l,
+        None => env::var("AUTH_TOKEN_LIFETIME").unwrap().parse().unwrap(),
+    };
 
     let now = Utc::now();
     let iat = now.timestamp() as usize;

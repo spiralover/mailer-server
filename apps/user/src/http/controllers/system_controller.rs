@@ -2,9 +2,10 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 use std::str::FromStr;
+use std::sync::Arc;
 
 use actix_web::web::{Data, ServiceConfig};
-use actix_web::{get, HttpRequest, HttpResponse};
+use actix_web::{get, HttpResponse};
 use rand::Rng;
 use serde::Deserialize;
 use strum::VariantNames;
@@ -16,12 +17,12 @@ use core::models::role::RoleCreateForm;
 use core::models::user::{UserRegisterForm, UserStatus};
 use core::models::user_ui_menu_item::MenuItemCreateDto;
 use core::models::DBPool;
-use core::permissions::Permissions;
+use core::enums::permissions::Permissions;
 use core::repositories::permission_repository::PermissionRepository;
 use core::repositories::role_repository::RoleRepository;
 use core::repositories::ui_menu_item_repository::UiMenuItemRepository;
 use core::results::AppResult;
-use core::roles::Roles;
+use core::enums::roles::Roles;
 use core::services::permission_service::PermissionService;
 use core::services::role_service::RoleService;
 use core::services::user_service::UserService;
@@ -38,14 +39,14 @@ async fn docker_test() -> HttpResponse {
 }
 
 #[get("database-seed")]
-async fn database_seed(req: HttpRequest) -> HttpResponse {
+async fn database_seed(app: Data<AppState>) -> HttpResponse {
     let super_admin_user_id = Uuid::from_str("be6ee736-ed4d-43c9-9c91-bfd0318b875e").unwrap();
     let admin_user_id = Uuid::from_str("3b9fcf79-188c-489c-97e9-d9b57b29109b").unwrap();
     let ahmard_user_id = Uuid::from_str("430167fd-0b57-46e0-a184-6fe92b9658ea").unwrap();
     let ahmardiy_user_id = Uuid::from_str("23d10910-5bd2-4cec-b979-9bd7f21cc6d1").unwrap();
 
-    let app = req.app_data::<Data<AppState>>().unwrap().get_ref();
-    let db_pool = app.get_db_pool();
+    let app = app.into_inner();
+    let db_pool = app.database();
 
     // Create Roles
     for role_name in Roles::VARIANTS {
@@ -79,7 +80,7 @@ async fn database_seed(req: HttpRequest) -> HttpResponse {
 
     // SEED USERS FROM users.json
     log::info!("seeding users...");
-    seed_users(app).await;
+    seed_users(app.clone()).await;
 
     // USER UI MENU ITEM
     log::info!("assigning menu item to users...");
@@ -98,7 +99,7 @@ async fn database_seed(req: HttpRequest) -> HttpResponse {
         .unwrap();
 
     let user_role = RoleRepository
-        .find_by_name(db_pool, Roles::User.to_string())
+        .find_by_name(db_pool, Roles::Staff.to_string())
         .unwrap();
 
     // ASSIGN BASIC PERMISSIONS TO ROLE
@@ -163,13 +164,13 @@ fn get_random_uuid(ids: &Vec<Uuid>) -> &Uuid {
         .unwrap()
 }
 
-async fn seed_users(app: &AppState) {
+async fn seed_users(app: Arc<AppState>) {
     let filename = "users.json";
     if !Path::new(filename).exists() {
         return; // skip since file does not exits
     }
 
-    let db_pool = app.get_db_pool();
+    let db_pool = app.database();
     let mut file = File::open(filename).unwrap();
     let mut data = String::new();
     file.read_to_string(&mut data).unwrap();
@@ -186,7 +187,7 @@ async fn seed_users(app: &AppState) {
         users.push(
             UserService
                 .create(
-                    app,
+                    app.clone(),
                     default_role_id,
                     UserRegisterForm {
                         email: user.email,
@@ -197,8 +198,7 @@ async fn seed_users(app: &AppState) {
                         password: format!("#{}.{}", split_email.first().unwrap(), 576),
                     },
                     Some(UserStatus::Active),
-                )
-                .await,
+                ),
         )
     }
 }

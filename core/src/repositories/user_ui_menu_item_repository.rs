@@ -1,21 +1,19 @@
-use std::ops::DerefMut;
-
-use diesel::dsl::not;
 use diesel::{
     BoolExpressionMethods, ExpressionMethods, PgTextExpressionMethods, QueryDsl, RunQueryDsl,
     SaveChangesDsl,
 };
+use diesel::dsl::not;
 use uuid::Uuid;
 
 use crate::enums::app_message::AppMessage;
-use crate::helpers::db::{current_timestamp, OptionalResult};
-use crate::helpers::db_pagination::{Paginate, PaginationResult};
-use crate::helpers::get_db_conn;
+use crate::helpers::db::{DatabaseConnectionHelper, OptionalResult};
+use crate::helpers::db_pagination::{PageData, Paginate};
 use crate::helpers::http::QueryParams;
+use crate::helpers::time::current_timestamp;
+use crate::helpers::DBPool;
 use crate::models::ui_menu::UiMenu;
 use crate::models::ui_menu_item::UiMenuItem;
 use crate::models::user_ui_menu_item::{MenuItemCreateDto, UserUiMenuItem};
-use crate::models::DBPool;
 use crate::results::app_result::FormatAppResult;
 use crate::results::AppResult;
 use crate::schema::{ui_menu_items, ui_menus, user_ui_menu_items};
@@ -28,7 +26,7 @@ impl UserUiMenuItemRepository {
         pool: &DBPool,
         user_id: Uuid,
         q: QueryParams,
-    ) -> AppResult<PaginationResult<UiMenu>> {
+    ) -> AppResult<PageData<UiMenu>> {
         let sub_query = user_ui_menu_items::table
             .select(user_ui_menu_items::ui_menu_id)
             .filter(user_ui_menu_items::deleted_at.is_null())
@@ -44,7 +42,7 @@ impl UserUiMenuItemRepository {
             )
             .paginate(q.get_page())
             .per_page(q.get_per_page())
-            .load_and_count_pages::<UiMenu>(get_db_conn(pool).deref_mut())
+            .load_and_count_pages::<UiMenu>(&mut pool.conn())
             .into_app_result()
     }
 
@@ -53,7 +51,7 @@ impl UserUiMenuItemRepository {
         pool: &DBPool,
         user_id: Uuid,
         q: QueryParams,
-    ) -> AppResult<PaginationResult<UiMenuItem>> {
+    ) -> AppResult<PageData<UiMenuItem>> {
         let sub_query = user_ui_menu_items::table
             .select(user_ui_menu_items::ui_menu_item_id)
             .filter(user_ui_menu_items::deleted_at.is_null())
@@ -69,7 +67,7 @@ impl UserUiMenuItemRepository {
             )
             .paginate(q.get_page())
             .per_page(q.get_per_page())
-            .load_and_count_pages::<UiMenuItem>(get_db_conn(pool).deref_mut())
+            .load_and_count_pages::<UiMenuItem>(&mut pool.conn())
             .into_app_result()
     }
 
@@ -93,7 +91,7 @@ impl UserUiMenuItemRepository {
 
         diesel::insert_into(user_ui_menu_items::dsl::user_ui_menu_items)
             .values(model)
-            .get_result::<UserUiMenuItem>(get_db_conn(pool).deref_mut())
+            .get_result::<UserUiMenuItem>(&mut pool.conn())
             .into_app_result()
     }
 
@@ -108,13 +106,13 @@ impl UserUiMenuItemRepository {
         diesel::update(
             user_ui_menu_items::table.filter(user_ui_menu_items::ui_menu_item_id.eq(id)),
         )
-        .set(user_ui_menu_items::deleted_at.eq(current_timestamp()))
-        .execute(get_db_conn(pool).deref_mut())
-        .into_app_result()?;
+            .set(user_ui_menu_items::deleted_at.eq(current_timestamp()))
+            .execute(&mut pool.conn())
+            .into_app_result()?;
 
         ui_menu_item.deleted_at = Some(current_timestamp());
         ui_menu_item
-            .save_changes::<UserUiMenuItem>(get_db_conn(pool).deref_mut())
+            .save_changes::<UserUiMenuItem>(&mut pool.conn())
             .map_err(|e| AppMessage::DatabaseError(e.to_string()))
     }
 
@@ -127,7 +125,7 @@ impl UserUiMenuItemRepository {
         ui_menu_items::table
             .filter(ui_menu_items::deleted_at.is_null())
             .filter(not(ui_menu_items::ui_menu_item_id.eq_any(sub_query)))
-            .get_results::<UiMenuItem>(get_db_conn(pool).deref_mut())
+            .get_results::<UiMenuItem>(&mut pool.conn())
             .into_app_result()
     }
 
@@ -141,7 +139,7 @@ impl UserUiMenuItemRepository {
             .filter(user_ui_menu_items::ui_menu_item_id.eq(id))
             .filter(user_ui_menu_items::user_id.eq(user_id))
             .filter(user_ui_menu_items::deleted_at.is_null())
-            .first::<UserUiMenuItem>(get_db_conn(pool).deref_mut())
+            .first::<UserUiMenuItem>(&mut pool.conn())
             .required("user ui menu item")
     }
 
@@ -150,7 +148,7 @@ impl UserUiMenuItemRepository {
         user_ui_menu_items::table
             .filter(user_ui_menu_items::user_ui_menu_item_id.eq(id))
             .filter(user_ui_menu_items::deleted_at.is_null())
-            .first::<UserUiMenuItem>(get_db_conn(pool).deref_mut())
+            .first::<UserUiMenuItem>(&mut pool.conn())
             .required("user ui menu item")
     }
 }

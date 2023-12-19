@@ -36,7 +36,7 @@ impl AppKey {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct AppKeyCreateForm {
+pub struct CreateForm {
     pub name: String,
     pub url: String,
     pub webhook: Option<String>,
@@ -44,7 +44,7 @@ pub struct AppKeyCreateForm {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct AppKeyUpdateForm {
+pub struct UpdateForm {
     pub name: String,
     pub url: String,
     pub webhook: Option<String>,

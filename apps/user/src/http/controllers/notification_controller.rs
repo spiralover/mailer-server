@@ -18,7 +18,7 @@ pub(crate) fn notification_controller(cfg: &mut ServiceConfig) {
 
 #[get("")]
 async fn index(req: HttpRequest, q: Query<QueryParams>) -> HttpResponse {
-    let db_pool = req.app_data::<Data<AppState>>().unwrap().get_db_pool();
+    let db_pool = req.app_data::<Data<AppState>>().unwrap().database();
     NotificationRepository
         .list_paginated_by_user_id(db_pool, req.auth_id(), q.into_inner())
         .send_pagination()
@@ -26,7 +26,7 @@ async fn index(req: HttpRequest, q: Query<QueryParams>) -> HttpResponse {
 
 #[patch("{id}/glance")]
 async fn glance(req: HttpRequest, id: Path<Uuid>) -> HttpResult {
-    let db_pool = req.app_data::<Data<AppState>>().unwrap().get_db_pool();
+    let db_pool = req.app_data::<Data<AppState>>().unwrap().database();
     NotificationService
         .mark_as_glanced(db_pool, id.into_inner(), req.auth_id())
         .send_result()
@@ -34,7 +34,7 @@ async fn glance(req: HttpRequest, id: Path<Uuid>) -> HttpResult {
 
 #[patch("{id}/read")]
 async fn read(req: HttpRequest, id: Path<Uuid>) -> HttpResult {
-    let db_pool = req.app_data::<Data<AppState>>().unwrap().get_db_pool();
+    let db_pool = req.app_data::<Data<AppState>>().unwrap().database();
     NotificationService
         .mark_as_read(db_pool, id.into_inner(), req.auth_id())
         .send_result()

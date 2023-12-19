@@ -38,8 +38,9 @@ pub enum ApplicationStatus {
 #[derive(Serialize, Deserialize)]
 pub struct ApplicationCreateForm {
     pub name: String,
+    pub code: String,
     pub url: String,
-    pub code: Option<String>,
+    pub sso_callback: String,
     pub webhook: String,
     pub description: String,
 }
@@ -47,7 +48,9 @@ pub struct ApplicationCreateForm {
 #[derive(Serialize, Deserialize)]
 pub struct ApplicationUpdateForm {
     pub name: String,
+    pub code: String,
     pub url: String,
+    pub sso_callback: String,
     pub webhook: String,
     pub description: String,
 }

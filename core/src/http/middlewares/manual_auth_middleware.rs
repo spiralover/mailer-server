@@ -1,5 +1,6 @@
+use core::fmt;
+use std::env;
 use std::future::{ready, Ready};
-use std::{env, fmt};
 
 use actix_web::error::ErrorUnauthorized;
 use actix_web::web::Data;
@@ -66,7 +67,7 @@ impl FromRequest for ManualAuthMiddleware {
         };
 
         let user_id = UniqueIdentifier::from_string(claims.sub);
-        let pool = req.app_data::<Data<AppState>>().unwrap().get_db_pool();
+        let pool = req.app_data::<Data<AppState>>().unwrap().database();
         let user_lookup = UserRepository.find_by_id(pool, user_id.uuid());
 
         if user_lookup.is_error_or_empty() {

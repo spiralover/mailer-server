@@ -1,11 +1,9 @@
-use std::ops::DerefMut;
-
 use diesel::SaveChangesDsl;
 use uuid::Uuid;
 
-use crate::helpers::get_db_conn;
+use crate::helpers::db::DatabaseConnectionHelper;
+use crate::helpers::DBPool;
 use crate::models::notification::{Notification, NotificationStatus};
-use crate::models::DBPool;
 use crate::repositories::notification_repository::NotificationRepository;
 use crate::results::app_result::FormatAppResult;
 use crate::results::AppResult;
@@ -53,7 +51,7 @@ impl NotificationService {
         let mut notification = NotificationRepository.find_by_id(pool, id, user_id)?;
         notification.status = status.to_string();
         notification
-            .save_changes::<Notification>(get_db_conn(pool).deref_mut())
+            .save_changes::<Notification>(&mut pool.conn())
             .into_app_result()
     }
 }

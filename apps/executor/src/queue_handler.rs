@@ -33,7 +33,7 @@ pub(crate) fn handle_awaiting_queue(app: &AppState, thread_name: String) {
                                 Some(mailbox) => mailbox,
                             });
 
-                            match MailService.create(app.get_db_pool(), payload) {
+                            match MailService.create(app.database(), payload) {
                                 Ok(mail) => {
                                     let _ = MailService.push_to_processing_queue(&app, mail);
                                 }
@@ -116,7 +116,7 @@ pub(crate) fn handle_success_queue(app: &AppState, thread_name: String) {
                                 response.saved_mail.mail.subject.clone()
                             );
 
-                            let _ = MailService.mark_as_success(app.get_db_pool(), response);
+                            let _ = MailService.mark_as_success(app.database(), response);
                         }
                         Err(err) => {
                             error!(
@@ -161,7 +161,7 @@ pub(crate) fn handle_failure_queue(app: &AppState, thread_name: String) {
                                     info!("retrying: {}", trials);
 
                                     let mail =
-                                        MailService.mark_as_retrying(app.get_db_pool(), response);
+                                        MailService.mark_as_retrying(app.database(), response);
 
                                     if let Ok(mail) = mail {
                                         saved.mail = mail;
@@ -170,7 +170,7 @@ pub(crate) fn handle_failure_queue(app: &AppState, thread_name: String) {
                                 }
                                 false => {
                                     let _ =
-                                        MailService.mark_as_failure(app.get_db_pool(), response);
+                                        MailService.mark_as_failure(app.database(), response);
                                 }
                             };
                         }

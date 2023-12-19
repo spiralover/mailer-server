@@ -1,5 +1,5 @@
 use std::env;
-use std::ops::DerefMut;
+use std::sync::Arc;
 
 use diesel::SaveChangesDsl;
 use nanoid::nanoid;
@@ -8,19 +8,16 @@ use uuid::Uuid;
 
 use crate::app_state::AppState;
 use crate::enums::app_message::AppMessage;
-use crate::helpers::db::current_timestamp;
-use crate::helpers::get_db_conn;
+use crate::enums::app_message::AppMessage::WarningMessage;
+use crate::helpers::db::DatabaseConnectionHelper;
 use crate::helpers::id_generator::number_generator;
 use crate::helpers::string::{password_hash, string};
 use crate::models::mail::MailBox;
-use crate::models::user::{
-    FullName, User, UserRegisterForm, UserSharableData, UserStatus, UserUpdateForm,
-    UsernameAvailability,
-};
-use crate::models::DBPool;
+use crate::helpers::time::current_timestamp;
+use crate::helpers::DBPool;
+use crate::models::user::{FullName, UserUpdateForm, User, UserRegisterForm, UserSharableData, UserStatus, UsernameAvailability};
 use crate::repositories::user_repository::UserRepository;
 use crate::results::app_result::FormatAppResult;
-use crate::results::http_result::ErroneousOptionResponse;
 use crate::results::AppResult;
 use crate::services::mailer_service::MailerService;
 use crate::services::role_service::RoleService;
@@ -33,14 +30,14 @@ impl UserService {
         UserRepository.update(pool, id, form)
     }
 
-    pub async fn create(
+    pub fn create(
         &mut self,
-        app: &AppState,
+        app: Arc<AppState>,
         role_id: Uuid,
         data: UserRegisterForm,
         status: Option<UserStatus>,
     ) -> AppResult<User> {
-        let db_pool = app.get_db_pool();
+        let db_pool = app.database();
         let (code, token) = self.make_verification_codes();
 
         let email_exists = UserRepository.exists_by_email(db_pool, data.email.clone())?;
@@ -61,8 +58,7 @@ impl UserService {
         let _ = UserUiMenuItemService.give_user_basic_items(db_pool, user.user_id);
 
         if status.is_none() || status.unwrap() == UserStatus::Pending {
-            self.send_email_confirmation(app, user.clone(), code, token)
-                .await;
+            self.send_email_confirmation(app, user.clone(), code, token);
         }
 
         Ok(user)
@@ -102,15 +98,9 @@ impl UserService {
         user_id: Uuid,
         status: UserStatus,
     ) -> AppResult<User> {
-        let user_result = UserRepository.find_by_id(pool, user_id);
-        if user_result.is_error_or_empty() {
-            return Err(user_result.unwrap_err());
-        }
-
-        let mut user = user_result.unwrap();
+        let mut user = UserRepository.find_by_id(pool, user_id)?;
         user.status = status.to_string();
-        user.save_changes(get_db_conn(pool).deref_mut())
-            .into_app_result()
+        user.save_changes(&mut pool.conn()).into_app_result()
     }
 
     pub fn change_password(
@@ -119,58 +109,37 @@ impl UserService {
         user_id: Uuid,
         password: String,
     ) -> AppResult<User> {
-        let user_result = UserRepository.find_by_id(pool, user_id);
-        if user_result.is_error_or_empty() {
-            return Err(user_result.unwrap_err());
-        }
-
-        let mut user = user_result.unwrap();
+        let mut user = UserRepository.find_by_id(pool, user_id)?;
         user.password = password_hash(password);
-        user.save_changes(get_db_conn(pool).deref_mut())
-            .into_app_result()
+        user.save_changes(&mut pool.conn()).into_app_result()
     }
 
     pub fn get_profile(&mut self, pool: &DBPool, id: Uuid) -> AppResult<UserSharableData> {
-        Ok(UserRepository.find_by_id(pool, id)?.into_sharable())
+        let user = UserRepository.find_by_id(pool, id)?.into_sharable();
+        Ok(user)
     }
 
     pub fn verify_email(&mut self, pool: &DBPool, token: String) -> AppResult<User> {
-        let result = UserRepository.find_by_token(pool, token);
-        if result.is_error_or_empty() {
-            return Err(result.unwrap_err());
-        }
-
-        let mut user = result.unwrap();
+        let mut user = UserRepository.find_by_token(pool, token)?;
 
         if user.is_verified {
-            return Err(AppMessage::WarningMessage(
-                "Your account has been verified already",
-            ));
+            return Err(WarningMessage("Your account has been verified already"));
         }
 
         user.is_verified = true;
         user.verified_at = Some(current_timestamp());
-        user.save_changes(get_db_conn(pool).deref_mut())
-            .into_app_result()
+        user.save_changes(&mut pool.conn()).into_app_result()
     }
 
-    pub async fn resend_email_confirmation(
+    pub fn resend_email_confirmation(
         &mut self,
-        app: &AppState,
+        app: Arc<AppState>,
         email: String,
     ) -> AppResult<User> {
-        let db_pool = app.get_db_pool();
-        let result = UserRepository.find_by_email(db_pool, email);
-        if result.is_error_or_empty() {
-            return Err(result.unwrap_err());
-        }
-
-        let mut user = result.unwrap();
+        let mut user = UserRepository.find_by_email(app.database(), email)?;
 
         if user.is_verified {
-            return Err(AppMessage::WarningMessage(
-                "Your account has been verified already",
-            ));
+            return Err(WarningMessage("Your account has been verified already"));
         }
 
         // Check verification code (create one if empty)
@@ -178,7 +147,7 @@ impl UserService {
             let (code, token) = self.make_verification_codes();
             user.verification_code = Some(code);
             user.verification_token = Some(token);
-            user.save_changes::<User>(get_db_conn(db_pool).deref_mut())
+            user.save_changes::<User>(&mut app.database().conn())
                 .into_app_result()?;
         }
 
@@ -187,8 +156,7 @@ impl UserService {
             user.clone(),
             user.verification_code.clone().unwrap(),
             user.verification_token.clone().unwrap(),
-        )
-        .await;
+        );
 
         Ok(user)
     }
@@ -199,8 +167,7 @@ impl UserService {
         mut user: User,
     ) -> AppResult<User> {
         user.has_started_password_reset = true;
-        user.save_changes(get_db_conn(pool).deref_mut())
-            .into_app_result()
+        user.save_changes(&mut pool.conn()).into_app_result()
     }
 
     pub fn mark_user_finished_password_reset(
@@ -209,8 +176,7 @@ impl UserService {
         mut user: User,
     ) -> AppResult<User> {
         user.has_started_password_reset = false;
-        user.save_changes(get_db_conn(pool).deref_mut())
-            .into_app_result()
+        user.save_changes(&mut pool.conn()).into_app_result()
     }
 
     pub fn change_profile_picture(
@@ -220,8 +186,7 @@ impl UserService {
         file_path: String,
     ) -> AppResult<User> {
         user.profile_picture = Some(file_path);
-        user.save_changes(get_db_conn(pool).deref_mut())
-            .into_app_result()
+        user.save_changes(&mut pool.conn()).into_app_result()
     }
 
     fn make_verification_codes(&mut self) -> (String, String) {
@@ -230,9 +195,9 @@ impl UserService {
         (code, token)
     }
 
-    async fn send_email_confirmation(
+    fn send_email_confirmation(
         &mut self,
-        app: &AppState,
+        app: Arc<AppState>,
         user: User,
         code: String,
         token: String,
@@ -252,7 +217,6 @@ impl UserService {
             .subject(app.title("Email Verification"))
             .receivers(vec![MailBox::new(&user.full_name(), user.email.as_str())])
             .view(app, "email-confirmation", context)
-            .send_silently()
-            .await;
+            .send_silently();
     }
 }

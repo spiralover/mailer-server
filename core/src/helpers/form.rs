@@ -3,7 +3,7 @@ use std::str::FromStr;
 use chrono::NaiveDateTime;
 use uuid::Uuid;
 
-use crate::helpers::db::current_timestamp;
+use crate::helpers::time::current_timestamp;
 
 #[allow(dead_code)]
 pub fn get_nullable_time(spent_at: Option<String>) -> NaiveDateTime {

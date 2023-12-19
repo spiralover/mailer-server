@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use tera::Context;
 use uuid::Uuid;
 
@@ -13,13 +14,13 @@ use crate::services::mailer_service::MailerService;
 pub struct AnnouncementService;
 
 impl AnnouncementService {
-    pub async fn send(
+    pub fn send(
         &mut self,
-        app: &AppState,
+        app: Arc<AppState>,
         sender_id: Uuid,
         form: AnnouncementCreateForm,
     ) -> AppResult<Announcement> {
-        let pool = app.get_db_pool();
+        let pool = app.database();
         let announcement = AnnouncementRepository.create(pool, sender_id, form.clone())?;
 
         let users = UserRepository.all(pool)?;
@@ -36,8 +37,7 @@ impl AnnouncementService {
             .view(app, "message", ctx)
             .receivers(receivers)
             .for_each_recv()
-            .send_silently()
-            .await;
+            .send_silently();
 
         Ok(announcement)
     }

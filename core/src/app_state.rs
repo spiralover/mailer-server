@@ -4,7 +4,7 @@ use lettre::SmtpTransport;
 use redis::Client;
 use tera::{Context, Tera};
 
-use crate::models::DBPool;
+use crate::helpers::DBPool;
 use crate::models::mail::MailBox;
 
 #[derive(Clone)]
@@ -38,7 +38,7 @@ pub struct AppRedisQueues {
 }
 
 impl AppState {
-    pub fn get_db_pool(&self) -> &DBPool {
+    pub fn database(&self) -> &DBPool {
         &self.database
     }
 

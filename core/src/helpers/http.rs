@@ -50,19 +50,6 @@ impl IdPathParam {
     }
 }
 
-impl Default for QueryParams {
-    fn default() -> Self {
-        Self {
-            search: None,
-            status: None,
-            stage: None,
-            limit: Some(10),
-            page: Some(1),
-            per_page: Some(10),
-        }
-    }
-}
-
 impl QueryParams {
     pub fn get_search_query(&self) -> String {
         self.search.clone().unwrap_or(string(""))
@@ -114,8 +101,7 @@ pub fn date_from_unsafe_input(date: &str, field_name: &str) -> Result<NaiveDateT
         })
 }
 
-#[derive(Serialize, Deserialize)]
-#[allow(dead_code)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct HttpHeaderItem {
     pub name: String,
     pub value: String,

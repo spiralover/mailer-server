@@ -1,12 +1,12 @@
-use actix_web::web::{Data, Path, Query, ServiceConfig};
+use actix_web::web::{block, Data, Path, Query, ServiceConfig};
 use actix_web::{get, HttpRequest};
 
-use core::app_state::AppState;
-use core::auth::has_permission;
+use core::enums::permissions::Permissions;
 use core::helpers::http::QueryParams;
-use core::permissions::Permissions;
+use core::helpers::request::RequestHelper;
+use core::helpers::DBPool;
 use core::repositories::permission_repository::PermissionRepository;
-use core::results::http_result::{ErroneousResponse, PaginationResponse};
+use core::results::http_result::ActixBlockingResultResponder;
 use core::results::HttpResult;
 
 pub fn permission_controller(cfg: &mut ServiceConfig) {
@@ -15,21 +15,17 @@ pub fn permission_controller(cfg: &mut ServiceConfig) {
 }
 
 #[get("")]
-async fn index(q: Query<QueryParams>, req: HttpRequest) -> HttpResult {
-    has_permission(req.to_owned(), Permissions::PermissionList, || {
-        let db_pool = req.app_data::<Data<AppState>>().unwrap().get_db_pool();
-        PermissionRepository
-            .list(db_pool, q.into_inner())
-            .send_pagination_result()
-    })
+async fn index(q: Query<QueryParams>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
+    req.verify_user_permission(Permissions::PermissionList)?;
+    block(move || PermissionRepository.list(pool.get_ref(), q.into_inner()))
+        .await
+        .respond()
 }
 
 #[get("find-by-name/{name}")]
-async fn find_by_name(name: Path<String>, req: HttpRequest) -> HttpResult {
-    has_permission(req.to_owned(), Permissions::PermissionList, || {
-        let db_pool = req.app_data::<Data<AppState>>().unwrap().get_db_pool();
-        PermissionRepository
-            .find_by_name(db_pool, name.into_inner())
-            .send_result()
-    })
+async fn find_by_name(name: Path<String>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
+    req.verify_user_permission(Permissions::PermissionList)?;
+    block(move || PermissionRepository.find_by_name(pool.get_ref(), name.into_inner()))
+        .await
+        .respond()
 }

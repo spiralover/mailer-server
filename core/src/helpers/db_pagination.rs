@@ -5,15 +5,46 @@ use diesel::prelude::*;
 use diesel::query_builder::*;
 use diesel::query_dsl::methods::LoadQuery;
 use diesel::sql_types::BigInt;
+use serde::Serialize;
 
 pub trait Paginate: Sized {
     fn paginate(self, page: i64) -> Paginated<Self>;
 }
 
-pub struct PaginationResult<U> {
+#[derive(Serialize)]
+pub struct PageData<U> {
     pub records: Vec<U>,
     pub total_pages: i64,
     pub total_records: i64,
+}
+
+impl<M> PageData<M> {
+    pub fn new(records: Vec<M>, total_pages: i64, total_records: i64) -> PageData<M> {
+        PageData {
+            records,
+            total_pages,
+            total_records,
+        }
+    }
+
+    pub fn format_result<T, F>(result: PageData<M>, func: F) -> PageData<T>
+    where
+        F: Fn(M) -> T,
+    {
+        let mut records = vec![];
+        for model in result.records {
+            records.push(func(model));
+        }
+
+        PageData::new(records, result.total_pages, result.total_records)
+    }
+
+    pub fn format<T, F>(self, func: F) -> PageData<T>
+    where
+        F: Fn(M) -> T,
+    {
+        PageData::format_result(self, func)
+    }
 }
 
 impl<T> Paginate for T {
@@ -46,10 +77,7 @@ impl<T> Paginated<T> {
         }
     }
 
-    pub fn load_and_count_pages<'a, U>(
-        self,
-        conn: &mut PgConnection,
-    ) -> QueryResult<PaginationResult<U>>
+    pub fn load_and_count_pages<'a, U>(self, conn: &mut PgConnection) -> QueryResult<PageData<U>>
     where
         Self: LoadQuery<'a, PgConnection, (U, i64)>,
     {
@@ -59,7 +87,7 @@ impl<T> Paginated<T> {
         let records = results.into_iter().map(|x| x.0).collect();
         let total_pages = (total as f64 / per_page as f64).ceil() as i64;
 
-        Ok(PaginationResult {
+        Ok(PageData {
             records,
             total_pages,
             total_records: total,

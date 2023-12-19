@@ -1,12 +1,10 @@
-use std::ops::DerefMut;
-
+use crate::helpers::db::{DatabaseConnectionHelper, OptionalResult};
+use crate::helpers::time::current_timestamp;
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use uuid::Uuid;
 
-use crate::helpers::db::{current_timestamp, OptionalResult};
-use crate::helpers::get_db_conn;
+use crate::helpers::DBPool;
 use crate::models::password_reset::{PasswordReset, PasswordResetCreateDto, PasswordResetStatus};
-use crate::models::DBPool;
 use crate::results::app_result::FormatAppResult;
 use crate::results::AppResult;
 use crate::schema::password_resets;
@@ -21,21 +19,19 @@ impl PasswordResetRepository {
         token: String,
         dto: PasswordResetCreateDto,
     ) -> AppResult<PasswordReset> {
-        let model = PasswordReset {
-            password_reset_id: Uuid::new_v4(),
-            user_id,
-            email: dto.email,
-            token,
-            ip_address: dto.ip_address,
-            user_agent: dto.user_agent,
-            status: PasswordResetStatus::AwaitingVerification.to_string(),
-            created_at: current_timestamp(),
-            updated_at: current_timestamp(),
-        };
-
         diesel::insert_into(password_resets::dsl::password_resets)
-            .values(model)
-            .get_result::<PasswordReset>(get_db_conn(pool).deref_mut())
+            .values(PasswordReset {
+                password_reset_id: Uuid::new_v4(),
+                user_id,
+                email: dto.email,
+                token,
+                ip_address: dto.ip_address,
+                user_agent: dto.user_agent,
+                status: PasswordResetStatus::AwaitingVerification.to_string(),
+                created_at: current_timestamp(),
+                updated_at: current_timestamp(),
+            })
+            .get_result::<PasswordReset>(&mut pool.conn())
             .into_app_result()
     }
 
@@ -49,7 +45,7 @@ impl PasswordResetRepository {
             .filter(
                 password_resets::status.eq(PasswordResetStatus::AwaitingVerification.to_string()),
             )
-            .first::<PasswordReset>(get_db_conn(pool).deref_mut())
+            .first::<PasswordReset>(&mut pool.conn())
             .required("password reset link")
     }
 }

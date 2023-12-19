@@ -1,10 +1,10 @@
-use diesel::{AsChangeset, Associations, Identifiable, Insertable, Queryable, Selectable};
-use serde::{Deserialize, Serialize};
-use uuid::Uuid;
-
-use models::ui_menu::UiMenu;
+#![allow(clippy::extra_unused_lifetimes)]
 
 use crate::models;
+use diesel::{AsChangeset, Associations, Identifiable, Insertable, Queryable, Selectable};
+use models::ui_menu::UiMenu;
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use super::super::schema::ui_menu_items;
 

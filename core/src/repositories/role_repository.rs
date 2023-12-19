@@ -1,32 +1,30 @@
-use std::ops::DerefMut;
-
-use diesel::dsl::not;
 use diesel::{ExpressionMethods, PgTextExpressionMethods, QueryDsl, RunQueryDsl, SaveChangesDsl};
+use diesel::dsl::not;
 use uuid::Uuid;
 
-use crate::helpers::db::{current_timestamp, OptionalResult};
-use crate::helpers::db_pagination::{Paginate, PaginationResult};
-use crate::helpers::get_db_conn;
+use crate::enums::roles::Roles;
+use crate::helpers::db::{DatabaseConnectionHelper, OptionalResult};
+use crate::helpers::db_pagination::{PageData, Paginate};
 use crate::helpers::http::QueryParams;
+use crate::helpers::time::current_timestamp;
+use crate::helpers::DBPool;
 use crate::models::permission::Permission;
 use crate::models::role::{Role, RoleCreateForm, RoleStatus};
-use crate::models::DBPool;
 use crate::results::app_result::FormatAppResult;
 use crate::results::AppResult;
-use crate::roles::Roles;
 use crate::schema::{permissions, role_permissions, roles};
 
 pub struct RoleRepository;
 
 impl RoleRepository {
-    pub fn list(&mut self, pool: &DBPool, q: QueryParams) -> AppResult<PaginationResult<Role>> {
+    pub fn list(&mut self, pool: &DBPool, q: QueryParams) -> AppResult<PageData<Role>> {
         roles::table
             .filter(roles::role_name.ilike(q.get_search_query_like()))
             .filter(roles::deleted_at.is_null())
             .order_by(roles::updated_at.desc())
             .paginate(q.get_page())
             .per_page(q.get_per_page())
-            .load_and_count_pages::<Role>(get_db_conn(pool).deref_mut())
+            .load_and_count_pages::<Role>(&mut pool.conn())
             .into_app_result()
     }
 
@@ -43,7 +41,7 @@ impl RoleRepository {
         permissions::table
             .filter(not(permissions::permission_id.eq_any(sq_existing_perms)))
             .filter(permissions::deleted_at.is_null())
-            .get_results::<Permission>(get_db_conn(pool).deref_mut())
+            .get_results::<Permission>(&mut pool.conn())
             .into_app_result()
     }
 
@@ -53,20 +51,18 @@ impl RoleRepository {
         created_by: Uuid,
         form: RoleCreateForm,
     ) -> AppResult<Role> {
-        let model = Role {
-            role_id: Uuid::new_v4(),
-            created_by,
-            role_name: form.name,
-            guard_name: form.guard,
-            status: RoleStatus::Active.to_string(),
-            created_at: current_timestamp(),
-            updated_at: current_timestamp(),
-            deleted_at: None,
-        };
-
         diesel::insert_into(roles::dsl::roles)
-            .values(model)
-            .get_result::<Role>(get_db_conn(pool).deref_mut())
+            .values(Role {
+                role_id: Uuid::new_v4(),
+                created_by,
+                role_name: form.name,
+                guard_name: form.guard,
+                status: RoleStatus::Active.to_string(),
+                created_at: current_timestamp(),
+                updated_at: current_timestamp(),
+                deleted_at: None,
+            })
+            .get_result::<Role>(&mut pool.conn())
             .into_app_result()
     }
 
@@ -74,7 +70,7 @@ impl RoleRepository {
         let mut dept = self.find_by_id(pool, id)?;
         dept.role_name = data.name;
         dept.guard_name = data.guard;
-        dept.save_changes::<Role>(get_db_conn(pool).deref_mut())
+        dept.save_changes::<Role>(&mut pool.conn())
             .into_app_result()
     }
 
@@ -82,7 +78,7 @@ impl RoleRepository {
         roles::table
             .filter(roles::role_id.eq(id))
             .filter(roles::deleted_at.is_null())
-            .first::<Role>(get_db_conn(pool).deref_mut())
+            .first::<Role>(&mut pool.conn())
             .required("role")
     }
 
@@ -90,13 +86,13 @@ impl RoleRepository {
         roles::table
             .filter(roles::role_name.eq(name))
             .filter(roles::deleted_at.is_null())
-            .first::<Role>(get_db_conn(pool).deref_mut())
+            .first::<Role>(&mut pool.conn())
             .required("role")
     }
 
     pub fn get_default_role_id(&mut self, pool: &DBPool) -> Uuid {
         RoleRepository
-            .find_by_name(pool, Roles::User.to_string())
+            .find_by_name(pool, Roles::Staff.to_string())
             .unwrap()
             .role_id
     }

@@ -1,18 +1,16 @@
-use std::ops::DerefMut;
-
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, SaveChangesDsl};
 use uuid::Uuid;
 
 use crate::enums::app_message::AppMessage;
-use crate::helpers::db::current_timestamp;
-use crate::helpers::get_db_conn;
+use crate::helpers::db::DatabaseConnectionHelper;
+use crate::helpers::time::current_timestamp;
+use crate::helpers::DBPool;
 use crate::models::permission::UserPermissionItem;
 use crate::models::role::{Role, RoleCreateForm, RoleStatus};
 use crate::models::role_permission::RolePermission;
 use crate::models::user::User;
 use crate::models::user_permission::UserPermission;
 use crate::models::user_role::UserRole;
-use crate::models::DBPool;
 use crate::repositories::role_repository::RoleRepository;
 use crate::repositories::user_permission_repository::UserPermissionRepository;
 use crate::repositories::user_repository::UserRepository;
@@ -59,15 +57,12 @@ impl RoleService {
         UserRoleRepository.create(pool, created_by, role_id, user_id)
     }
 
-    pub fn un_assign_user_role(
-        &mut self,
-        pool: &DBPool,
-        user_role_id: Uuid,
-    ) -> AppResult<UserRole> {
+    pub fn un_assign_user_role(&mut self, pool: &DBPool, user_role_id: Uuid) -> AppResult<AppMessage> {
         let mut ur = UserRoleRepository.find_by_id(pool, user_role_id)?;
         ur.deleted_at = Some(current_timestamp());
-        ur.save_changes::<UserRole>(get_db_conn(pool).deref_mut())
-            .into_app_result()
+        ur.save_changes::<UserRole>(&mut pool.conn()).into_app_result()?;
+
+        Ok(AppMessage::SuccessMessage("removed"))
     }
 
     pub fn user_permission_add(
@@ -133,13 +128,13 @@ impl RoleService {
         if let Some(name) = filter_name {
             return query
                 .filter(permissions::permission_name.eq(name))
-                .get_results::<UserPermissionItem>(get_db_conn(pool).deref_mut())
+                .get_results::<UserPermissionItem>(&mut pool.conn())
                 .into_app_result()
                 .map(|perms| (user, perms));
         }
 
         query
-            .get_results::<UserPermissionItem>(get_db_conn(pool).deref_mut())
+            .get_results::<UserPermissionItem>(&mut pool.conn())
             .into_app_result()
             .map(|perms| (user, perms))
     }
@@ -149,7 +144,7 @@ impl RoleService {
 
         role.updated_at = current_timestamp();
         role.status = status.to_string();
-        role.save_changes::<Role>(get_db_conn(pool).deref_mut())
+        role.save_changes::<Role>(&mut pool.conn())
             .into_app_result()
     }
 }

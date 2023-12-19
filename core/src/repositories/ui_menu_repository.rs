@@ -1,17 +1,15 @@
-use std::ops::DerefMut;
-
 use diesel::{
     BoolExpressionMethods, ExpressionMethods, PgTextExpressionMethods, QueryDsl, RunQueryDsl,
     SaveChangesDsl,
 };
 use uuid::Uuid;
 
-use crate::helpers::db::{current_timestamp, OptionalResult};
-use crate::helpers::db_pagination::{Paginate, PaginationResult};
-use crate::helpers::get_db_conn;
+use crate::helpers::db::{DatabaseConnectionHelper, OptionalResult};
+use crate::helpers::db_pagination::{PageData, Paginate};
 use crate::helpers::http::QueryParams;
+use crate::helpers::time::current_timestamp;
+use crate::helpers::DBPool;
 use crate::models::ui_menu::{CreateForm, UiMenu};
-use crate::models::DBPool;
 use crate::results::app_result::FormatAppResult;
 use crate::results::AppResult;
 use crate::schema::ui_menus;
@@ -19,7 +17,7 @@ use crate::schema::ui_menus;
 pub struct UiMenuRepository;
 
 impl UiMenuRepository {
-    pub fn list(&mut self, pool: &DBPool, q: QueryParams) -> AppResult<PaginationResult<UiMenu>> {
+    pub fn list(&mut self, pool: &DBPool, q: QueryParams) -> AppResult<PageData<UiMenu>> {
         ui_menus::table
             .filter(ui_menus::deleted_at.is_null())
             .filter(
@@ -30,7 +28,7 @@ impl UiMenuRepository {
             .order_by(ui_menus::m_priority.asc())
             .paginate(q.get_page())
             .per_page(q.get_per_page())
-            .load_and_count_pages::<UiMenu>(get_db_conn(pool).deref_mut())
+            .load_and_count_pages::<UiMenu>(&mut pool.conn())
             .into_app_result()
     }
 
@@ -40,22 +38,20 @@ impl UiMenuRepository {
         created_by: Uuid,
         form: CreateForm,
     ) -> AppResult<UiMenu> {
-        let model = UiMenu {
-            ui_menu_id: Uuid::new_v4(),
-            created_by,
-            m_name: form.name,
-            m_priority: form.priority,
-            m_desc: form.desc,
-            m_url: form.url,
-            m_has_items: form.has_items,
-            created_at: current_timestamp(),
-            updated_at: current_timestamp(),
-            deleted_at: None,
-        };
-
         diesel::insert_into(ui_menus::dsl::ui_menus)
-            .values(model)
-            .get_result::<UiMenu>(get_db_conn(pool).deref_mut())
+            .values(UiMenu {
+                ui_menu_id: Uuid::new_v4(),
+                created_by,
+                m_name: form.name,
+                m_priority: form.priority,
+                m_desc: form.desc,
+                m_url: form.url,
+                m_has_items: form.has_items,
+                created_at: current_timestamp(),
+                updated_at: current_timestamp(),
+                deleted_at: None,
+            })
+            .get_result::<UiMenu>(&mut pool.conn())
             .into_app_result()
     }
 
@@ -65,7 +61,7 @@ impl UiMenuRepository {
         ui_menu.m_desc = form.desc;
         ui_menu.m_priority = form.priority;
         ui_menu
-            .save_changes::<UiMenu>(get_db_conn(pool).deref_mut())
+            .save_changes::<UiMenu>(&mut pool.conn())
             .into_app_result()
     }
 
@@ -73,7 +69,7 @@ impl UiMenuRepository {
         let mut ui_menu = self.find_by_id(pool, id)?;
         ui_menu.deleted_at = Some(current_timestamp());
         ui_menu
-            .save_changes::<UiMenu>(get_db_conn(pool).deref_mut())
+            .save_changes::<UiMenu>(&mut pool.conn())
             .into_app_result()
     }
 
@@ -81,7 +77,7 @@ impl UiMenuRepository {
         ui_menus::table
             .filter(ui_menus::ui_menu_id.eq(id))
             .filter(ui_menus::deleted_at.is_null())
-            .first::<UiMenu>(get_db_conn(pool).deref_mut())
+            .first::<UiMenu>(&mut pool.conn())
             .required("ui menu")
     }
 }

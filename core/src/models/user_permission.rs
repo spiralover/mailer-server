@@ -1,9 +1,11 @@
-use diesel::sql_types::{Text, Uuid as DieselUUID};
+#![allow(clippy::extra_unused_lifetimes)]
+
 use diesel::{AsChangeset, Identifiable, Insertable, Queryable, QueryableByName};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::super::schema::user_permissions;
+use diesel::sql_types::{Text, Uuid as DieselUUID};
 
 #[derive(
     Debug, Serialize, Deserialize, Insertable, Queryable, AsChangeset, Identifiable, Clone,

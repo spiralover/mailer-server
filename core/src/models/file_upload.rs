@@ -2,7 +2,7 @@ use diesel::{AsChangeset, Identifiable, Insertable, Queryable, Selectable};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::entities::Entities;
+use crate::enums::entities::Entities;
 
 use super::super::schema::file_uploads;
 

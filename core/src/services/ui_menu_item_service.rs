@@ -1,9 +1,9 @@
 use uuid::Uuid;
 
-use crate::models::ui_menu_item::{CreateForm, UiMenuItem};
-use crate::models::DBPool;
-use crate::repositories::ui_menu_item_repository::UiMenuItemRepository;
 use crate::results::AppResult;
+use crate::models::ui_menu_item::{CreateForm, UiMenuItem};
+use crate::helpers::DBPool;
+use crate::repositories::ui_menu_item_repository::UiMenuItemRepository;
 
 pub struct UiMenuItemService;
 

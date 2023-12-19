@@ -1,14 +1,12 @@
-use std::ops::DerefMut;
-
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use uuid::Uuid;
 
-use crate::helpers::db::{current_timestamp, OptionalResult};
-use crate::helpers::db_pagination::{Paginate, PaginationResult};
-use crate::helpers::get_db_conn;
+use crate::helpers::db::{DatabaseConnectionHelper, OptionalResult};
+use crate::helpers::db_pagination::{PageData, Paginate};
 use crate::helpers::http::QueryParams;
+use crate::helpers::time::current_timestamp;
+use crate::helpers::DBPool;
 use crate::models::notification::{Notification, NotificationStatus};
-use crate::models::DBPool;
 use crate::results::app_result::FormatAppResult;
 use crate::results::AppResult;
 use crate::schema::notifications;
@@ -38,7 +36,7 @@ impl NotificationRepository {
 
         diesel::insert_into(notifications::dsl::notifications)
             .values(model)
-            .get_result::<Notification>(get_db_conn(pool).deref_mut())
+            .get_result::<Notification>(&mut pool.conn())
             .into_app_result()
     }
 
@@ -46,15 +44,15 @@ impl NotificationRepository {
         &mut self,
         pool: &DBPool,
         id: Uuid,
-        query_params: QueryParams,
-    ) -> AppResult<PaginationResult<Notification>> {
+        q: QueryParams,
+    ) -> AppResult<PageData<Notification>> {
         notifications::table
             .filter(notifications::receiver_id.eq(id))
             .filter(notifications::deleted_at.is_null())
             .order_by(notifications::updated_at.desc())
-            .paginate(query_params.get_page())
-            .per_page(query_params.get_per_page())
-            .load_and_count_pages::<Notification>(get_db_conn(pool).deref_mut())
+            .paginate(q.get_page())
+            .per_page(q.get_per_page())
+            .load_and_count_pages::<Notification>(&mut pool.conn())
             .into_app_result()
     }
 
@@ -68,7 +66,7 @@ impl NotificationRepository {
             .filter(notifications::notification_id.eq(id))
             .filter(notifications::receiver_id.eq(user_id))
             .filter(notifications::deleted_at.is_null())
-            .first::<Notification>(get_db_conn(pool).deref_mut())
+            .first::<Notification>(&mut pool.conn())
             .required("notification")
     }
 }

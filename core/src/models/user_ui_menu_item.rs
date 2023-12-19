@@ -1,13 +1,13 @@
 #![allow(clippy::extra_unused_lifetimes)]
 
+use crate::models::ui_menu::UiMenu;
+use crate::models::ui_menu_item::UiMenuItem;
 use diesel::{AsChangeset, Identifiable, Insertable, Queryable};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::models::ui_menu::UiMenu;
-use crate::models::ui_menu_item::UiMenuItem;
-
 use super::super::schema::user_ui_menu_items;
+
 #[derive(
     Debug, Serialize, Deserialize, Insertable, Queryable, AsChangeset, Identifiable, Clone,
 )]

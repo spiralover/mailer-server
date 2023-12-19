@@ -45,7 +45,6 @@ where
         ready(Ok(AuthMiddleware { service }))
     }
 }
-
 pub struct AuthMiddleware<S> {
     service: S,
 }
@@ -112,7 +111,7 @@ where
         let claims = decoded.unwrap().claims;
 
         let user_id = UniqueIdentifier::from_string(claims.sub);
-        let pool = request.app_data::<Data<AppState>>().unwrap().get_db_pool();
+        let pool = request.app_data::<Data<AppState>>().unwrap().database();
         let user_lookup = UserRepository.find_by_id(pool, user_id.uuid());
 
         if user_lookup.is_error_or_empty() {

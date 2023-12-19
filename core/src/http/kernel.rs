@@ -1,10 +1,11 @@
 use std::rc::Rc;
 
+use crate::helpers::responder::json_error_message_status;
 use actix_cors::Cors;
 use actix_web::http::{header, StatusCode};
 use actix_web::middleware::Logger;
 use actix_web::web::ServiceConfig;
-use actix_web::{web, HttpResponse, Route as ActixRoute};
+use actix_web::{web, Route as ActixRoute};
 
 use crate::http::middlewares::auth_middleware::Auth;
 
@@ -70,11 +71,7 @@ pub fn setup_cors(origins: Vec<String>) -> Cors {
 }
 
 pub fn actix_default_service() -> ActixRoute {
-    web::to(|| async {
-        HttpResponse::Ok()
-            .status(StatusCode::NOT_FOUND)
-            .body("Page Not Found")
-    })
+    web::to(|| async { json_error_message_status("Resource(s) Not Found", StatusCode::NOT_FOUND) })
 }
 
 pub fn register_middlewares(_actix_config: &mut ServiceConfig) {

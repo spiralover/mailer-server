@@ -1,11 +1,13 @@
 use std::collections::HashMap;
 use std::env;
+use std::sync::Arc;
 
 use chrono::{Datelike, Utc};
 use log::error;
 use reqwest::Error;
 use serde::{Deserialize, Serialize};
 use tera::Context;
+use tokio::spawn;
 
 use crate::app_state::AppState;
 use crate::models::mail::MailBox;
@@ -94,7 +96,7 @@ impl MailerService {
         self
     }
 
-    pub fn view(&mut self, app: &AppState, file: &str, mut ctx: Context) -> &mut MailerService {
+    pub fn view(&mut self, app: Arc<AppState>, file: &str, mut ctx: Context) -> &mut MailerService {
         ctx.insert("year", &Utc::now().year());
         ctx.insert("app_name", &app.app_name.clone());
         ctx.insert("app_desc", &app.app_desc.clone());
@@ -104,8 +106,9 @@ impl MailerService {
         self.body(app.render(file.to_string(), ctx))
     }
 
-    pub async fn send_silently(&mut self) {
-        let _result = self.send().await;
+    pub fn send_silently(&mut self) {
+        let mut mailer = self.clone();
+        spawn(async move { mailer.send().await });
     }
 
     pub async fn send(&mut self) -> Result<MailerResponse, MailerError> {

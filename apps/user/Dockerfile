@@ -39,11 +39,23 @@ FROM ${IMAGE} AS runtime
 # Install dependency (Required by diesel)
 RUN apt-get update && apt-get install curl libpq-dev -y
 
+# Install Diesel CLI
+RUN cargo install diesel_cli --no-default-features --features postgres
+
 # Setup working directory
 WORKDIR /var/www/mailer/apps/user
 
+# Create uploads directory
+RUN mkdir -p /var/www/mailer/apps/user/static/uploads
+
 # copy files
 COPY apps/user/.env.example .env
+COPY ../../diesel.toml diesel.toml
+COPY ../../app-setup.sh app-setup.sh
+COPY ../../app-refresh-setup.sh app-refresh-setup.sh
+
+# copy folders
+COPY resources resources
 
 RUN rm apps core docs examples .github -rf
 

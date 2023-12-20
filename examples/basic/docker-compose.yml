@@ -14,7 +14,7 @@ services:
     volumes:
       - "/spiralover/mailer/uploads:/var/www/mailer/static/uploads"
     ports:
-      - "127.0.0.1:4401:4401"
+      - "${DOCKER_DNS_PREFIX}.1:4401:4401"
     networks:
       - mailer-main
     extra_hosts:
@@ -40,7 +40,7 @@ services:
       DB_HOST: "database"
       DB_PORT: "${DB_PORT}"
     ports:
-      - "127.0.0.1:4402:4402"
+      - "${DOCKER_DNS_PREFIX}.1:4402:4402"
     networks:
       - mailer-main
     extra_hosts:

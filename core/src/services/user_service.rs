@@ -213,10 +213,10 @@ impl UserService {
         context.insert("code", &code);
         context.insert("link", &link);
 
-        MailerService::new()
+        MailerService::new(app.clone())
             .subject(app.title("Email Verification"))
             .receivers(vec![MailBox::new(&user.full_name(), user.email.as_str())])
-            .view(app, "email-confirmation", context)
+            .view("account-confirmation", context)
             .send_silently();
     }
 }

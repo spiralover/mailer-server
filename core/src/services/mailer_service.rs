@@ -1,16 +1,19 @@
 use std::collections::HashMap;
 use std::env;
+use std::str::FromStr;
 use std::sync::Arc;
 
 use chrono::{Datelike, Utc};
 use log::error;
-use reqwest::Error;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize};
 use tera::Context;
 use tokio::spawn;
+use uuid::Uuid;
 
 use crate::app_state::AppState;
-use crate::models::mail::MailBox;
+use crate::models::mail::{MailBox, MailQueueablePayload};
+use crate::results::RedisResult;
+use crate::services::mail_service::MailService;
 
 impl MailBox {
     pub fn new(name: &str, email: &str) -> MailBox {
@@ -35,8 +38,9 @@ pub struct MailerError {
     pub message: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Clone)]
 pub struct MailerService {
+    app: Arc<AppState>,
     for_each_recv: bool,
     receiver: Vec<MailBox>,
     cc: Vec<MailBox>,
@@ -47,15 +51,10 @@ pub struct MailerService {
     message: String,
 }
 
-#[derive(Serialize)]
-struct MailPayload {
-    app: String,
-    mails: Vec<MailerService>,
-}
-
-impl Default for MailerService {
-    fn default() -> Self {
+impl MailerService {
+    pub fn new(app: Arc<AppState>) -> Self {
         MailerService {
+            app,
             for_each_recv: false,
             cc: vec![],
             bcc: vec![],
@@ -68,12 +67,6 @@ impl Default for MailerService {
                 email: env::var("MAIL_FROM_EMAIL").unwrap(),
             },
         }
-    }
-}
-
-impl MailerService {
-    pub fn new() -> Self {
-        Self::default()
     }
 
     pub fn subject(&mut self, s: String) -> &mut MailerService {
@@ -96,14 +89,14 @@ impl MailerService {
         self
     }
 
-    pub fn view(&mut self, app: Arc<AppState>, file: &str, mut ctx: Context) -> &mut MailerService {
+    pub fn view(&mut self, file: &str, mut ctx: Context) -> &mut MailerService {
         ctx.insert("year", &Utc::now().year());
-        ctx.insert("app_name", &app.app_name.clone());
-        ctx.insert("app_desc", &app.app_desc.clone());
-        ctx.insert("app_help_email", &app.app_help_email.clone());
-        ctx.insert("app_frontend_url", &app.app_frontend_url.clone());
+        ctx.insert("app_name", &self.app.app_name.clone());
+        ctx.insert("app_desc", &self.app.app_desc.clone());
+        ctx.insert("app_help_email", &self.app.app_help_email.clone());
+        ctx.insert("app_frontend_url", &self.app.app_frontend_url.clone());
 
-        self.body(app.render(file.to_string(), ctx))
+        self.body(self.app.render(file.to_string(), ctx))
     }
 
     pub fn send_silently(&mut self) {
@@ -111,7 +104,7 @@ impl MailerService {
         spawn(async move { mailer.send().await });
     }
 
-    pub async fn send(&mut self) -> Result<MailerResponse, MailerError> {
+    pub async fn send(&mut self) -> Result<i32, MailerError> {
         let max_loop = 3;
         for i in 0..max_loop {
             let response = self.do_send().await;
@@ -134,45 +127,22 @@ impl MailerService {
         })
     }
 
-    async fn do_send(&self) -> Result<MailerResponse, Error> {
-        let client = reqwest::Client::new();
-        let address = format!(
-            "{}/api/v1/mail/send",
-            env::var("MAILER_SERVER_ENDPOINT").unwrap()
-        );
-
-        let payload = match self.for_each_recv {
-            true => {
-                let mut mails = vec![];
-                for receiver in &self.receiver {
-                    let mut rec = self.clone();
-                    rec.receiver = vec![receiver.clone()];
-                    mails.push(rec);
-                }
-
-                MailPayload {
-                    app: "mailer".to_string(),
-                    mails,
-                }
-            }
-            false => MailPayload {
-                app: "mailer".to_string(),
-                mails: vec![self.clone()],
+    async fn do_send(&self) -> RedisResult<i32> {
+        let user_id = Uuid::from_str(self.app.mailer_system_user_id.as_str()).unwrap();
+        let app_id = Uuid::from_str(self.app.mailer_application_id.as_str()).unwrap();
+        MailService.push_to_awaiting_queue(
+            self.app.as_ref(),
+            MailQueueablePayload {
+                application_id: app_id,
+                created_by: user_id,
+                subject: self.subject.clone(),
+                message: self.message.clone(),
+                from: Some(self.from.clone()),
+                cc: self.cc.clone(),
+                bcc: self.bcc.clone(),
+                reply_to: self.reply_to.clone(),
+                receiver: self.receiver.clone(),
             },
-        };
-
-        let resp = client
-            .post(address)
-            .json(&payload)
-            .header(
-                "X-Auth-Token",
-                env::var("MAILER_SERVER_AUTH_TOKEN").unwrap(),
-            )
-            .send()
-            .await?
-            .json::<MailerResponse>()
-            .await?;
-
-        Ok(resp)
+        )
     }
 }

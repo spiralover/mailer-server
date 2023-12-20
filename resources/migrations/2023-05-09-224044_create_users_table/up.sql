@@ -25,7 +25,9 @@ ALTER TABLE users
     ADD CONSTRAINT fk_users_created_by FOREIGN KEY (created_by) REFERENCES users (user_id);
 
 INSERT INTO users(user_id, is_verified, username, first_name, last_name, email, password)
-VALUES ('be6ee736-ed4d-43c9-9c91-bfd0318b875e', TRUE, 'super.admin', 'Super', 'Admin', 'super.admin@spiralover.com',
+VALUES ('8caadfd3-ead5-422e-991a-9ad2c90935f3', TRUE, 'system', 'System', 'Mailer', 'system@spiralover.com',
+        '$argon2i$v=19$m=4096,t=3,p=1$NTFjYWYyYzc3YWNjZjU3OWJlMjExNTUxZjdiNGI1YmU$uowVYN+UsXOCZNx3JicBppmteh4zDIWvW8gc5XwmSsQ'),
+       ('be6ee736-ed4d-43c9-9c91-bfd0318b875e', TRUE, 'super.admin', 'Super', 'Admin', 'super.admin@spiralover.com',
         '$argon2i$v=19$m=4096,t=3,p=1$NTFjYWYyYzc3YWNjZjU3OWJlMjExNTUxZjdiNGI1YmU$uowVYN+UsXOCZNx3JicBppmteh4zDIWvW8gc5XwmSsQ'),
        ('3b9fcf79-188c-489c-97e9-d9b57b29109b', TRUE, 'admin', 'Admin', 'SpiralOver', 'admin@spiralover.com',
         '$argon2i$v=19$m=4096,t=3,p=1$NTFjYWYyYzc3YWNjZjU3OWJlMjExNTUxZjdiNGI1YmU$uowVYN+UsXOCZNx3JicBppmteh4zDIWvW8gc5XwmSsQ'),

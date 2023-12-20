@@ -2,8 +2,8 @@ use std::env;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-use diesel::r2d2::ConnectionManager;
 use diesel::PgConnection;
+use diesel::r2d2::ConnectionManager;
 use lettre::SmtpTransport;
 use lettre::transport::smtp::authentication::{Credentials, Mechanism};
 use log::info;
@@ -25,6 +25,8 @@ pub async fn make_app_state() -> AppState {
     let redis = establish_redis_connection();
 
     AppState {
+        mailer_application_id: env::var("MAILER_APPLICATION_ID").unwrap(),
+        mailer_system_user_id: env::var("MAILER_SYSTEM_USER_ID").unwrap(),
         tera: tera_templating,
         database: database_pool.clone(),
         redis: redis.clone(),
@@ -35,7 +37,7 @@ pub async fn make_app_state() -> AppState {
         app_desc: env::var("APP_DESC").unwrap(),
         app_key: env::var("APP_KEY").unwrap(),
         mail_from: MailBox {
-            email: env::var("MAIL_FROM_ADDRESS").unwrap(),
+            email: env::var("MAIL_FROM_EMAIL").unwrap(),
             name: env::var("MAIL_FROM_NAME").unwrap(),
         },
         app_help_email: env::var("APP_HELP_EMAIL").unwrap(),

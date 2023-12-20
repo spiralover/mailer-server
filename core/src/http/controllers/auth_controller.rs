@@ -44,7 +44,7 @@ async fn login(data: Json<LoginForm>, app: Data<AppState>, req: HttpRequest) -> 
         .respond()
 }
 
-#[post("resend-verification-code")]
+#[post("resend-device-verification-code")]
 async fn resend_verification_code(data: Json<EmailForm>, app: Data<AppState>) -> HttpResult {
     block(move || {
         AuthService

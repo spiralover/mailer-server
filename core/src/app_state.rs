@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
-use lettre::SmtpTransport;
 
+use lettre::SmtpTransport;
 use redis::Client;
 use tera::{Context, Tera};
 
@@ -13,6 +13,8 @@ pub struct AppState {
     pub app_desc: String,
     pub app_help_email: String,
     pub mail_from: MailBox,
+    pub mailer_application_id: String,
+    pub mailer_system_user_id: String,
     pub app_frontend_url: String,
     pub app_key: String,
     pub app_token_lifetime: i64,

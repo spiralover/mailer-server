@@ -38,10 +38,11 @@ impl PasswordResetService {
         context.insert("full_name", &user.full_name());
         context.insert("token", &token);
 
-        MailerService::new()
-            .subject(app.title("Password Reset"))
+        let subject = app.title("Password Reset");
+        MailerService::new(app)
+            .subject(subject)
             .receivers(vec![MailBox::new(&user.full_name(), user.email.as_str())])
-            .view(app, "password-reset", context)
+            .view("password-reset", context)
             .send_silently();
 
         Ok(reset)
@@ -63,10 +64,11 @@ impl PasswordResetService {
         let mut context = Context::new();
         context.insert("full_name", &user.full_name());
 
-        MailerService::new()
-            .subject(app.title("Changed Password"))
+        let subject = app.title("Changed Password");
+        MailerService::new(app)
+            .subject(subject)
             .receivers(vec![MailBox::new(&user.full_name(), user.email.as_str())])
-            .view(app, "password-reset-success", context)
+            .view("password-reset-success", context)
             .send_silently();
 
         Ok(user)

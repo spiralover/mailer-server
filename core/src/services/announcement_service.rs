@@ -32,9 +32,9 @@ impl AnnouncementService {
         let mut ctx = Context::new();
         ctx.insert("subject", &announcement.title);
         ctx.insert("message", &announcement.message);
-        MailerService::new()
+        MailerService::new(app)
             .subject(format!("Announcement: {}", form.title.clone()))
-            .view(app, "message", ctx)
+            .view("message", ctx)
             .receivers(receivers)
             .for_each_recv()
             .send_silently();

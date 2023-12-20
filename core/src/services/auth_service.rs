@@ -155,10 +155,11 @@ impl AuthService {
         context.insert("full_name", &user.full_name());
         context.insert("code", &code.to_owned());
 
-        MailerService::new()
-            .subject(app.title("Device Verification"))
+        let subject = app.title("Device Verification");
+        MailerService::new(app)
+            .subject(subject)
             .receivers(vec![MailBox::new(&user.full_name(), user.email.as_str())])
-            .view(app, "otp", context)
+            .view("otp", context)
             .send_silently();
     }
 

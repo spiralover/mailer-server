@@ -10,7 +10,7 @@ pub fn main_controller_guest(cfg: &mut ServiceConfig) {
 
 #[get("/")]
 async fn index() -> Redirect {
-    Redirect::to("https://nerve.spiralover.com")
+    Redirect::to("https://spiralover.com")
 }
 
 #[get("about")]

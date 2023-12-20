@@ -14,6 +14,9 @@ Execute below command to refresh DB, re-install tables & seed data
 docker exec -i mailer-user-service sh app-refresh-setup.sh
 ```
 
+## Examples
+- [Docker-Compose Example](/examples/basic)
+
 ## Payload Sample
 ```json
 {

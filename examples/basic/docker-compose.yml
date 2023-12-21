@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   user-service:
-    image: spiralover/mailer-user-service:0.1
+    image: spiralover/mailer-user-service:${MAILER_VERSION}
     container_name: mailer-user-service
     restart: always
     env_file:
@@ -30,7 +30,7 @@ services:
       start_period: 30s
 
   executor-service:
-    image: spiralover/mailer-executor-service:0.1
+    image: spiralover/mailer-executor-service:${MAILER_VERSION}
     container_name: mailer-executor-service
     restart: always
     env_file:

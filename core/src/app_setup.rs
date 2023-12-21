@@ -2,18 +2,18 @@ use std::env;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-use diesel::PgConnection;
 use diesel::r2d2::ConnectionManager;
-use lettre::SmtpTransport;
+use diesel::PgConnection;
 use lettre::transport::smtp::authentication::{Credentials, Mechanism};
+use lettre::SmtpTransport;
 use log::info;
 use redis::Client;
 use tera::Tera;
 
 use crate::app_state::{AppRedisQueues, AppState};
 use crate::helpers::fs::get_cwd;
-use crate::models::DBPool;
 use crate::models::mail::MailBox;
+use crate::models::DBPool;
 
 pub async fn make_app_state() -> AppState {
     let database_pool = establish_database_connection();
@@ -28,6 +28,8 @@ pub async fn make_app_state() -> AppState {
         app_name: env::var("APP_NAME").unwrap(),
         app_desc: env::var("APP_DESC").unwrap(),
         app_key: env::var("APP_KEY").unwrap(),
+        app_url: env::var("APP_URL").unwrap(),
+        app_logo_url: env::var("APP_LOGO_URL").unwrap(),
         app_help_email: env::var("APP_HELP_EMAIL").unwrap(),
         app_frontend_url: env::var("FRONTEND_ADDRESS").unwrap(),
 
@@ -92,9 +94,16 @@ pub(crate) fn create_smtp_client() -> SmtpTransport {
     let encryption = env::var("MAIL_ENCRYPTION").unwrap();
     let credentials = Credentials::new(username.clone(), password);
 
-    info!("creating smtp client: smtp://{}:[password]@{}:{}", username, host.clone(), port.clone());
+    info!(
+        "creating smtp client: smtp://{}:[password]@{}:{}",
+        username,
+        host.clone(),
+        port.clone()
+    );
 
-    SmtpTransport::builder_dangerous(host.as_str()).port(port).build();
+    SmtpTransport::builder_dangerous(host.as_str())
+        .port(port)
+        .build();
 
     match encryption.as_str() {
         "local" => SmtpTransport::builder_dangerous(host.as_str())
@@ -104,13 +113,11 @@ pub(crate) fn create_smtp_client() -> SmtpTransport {
             .port(port)
             .credentials(credentials)
             .build(),
-        "startls" | "tls" => {
-            SmtpTransport::starttls_relay(host.as_str())
-                .unwrap()
-                .credentials(credentials)
-                .authentication(vec![Mechanism::Login])
-                .build()
-        }
+        "startls" | "tls" => SmtpTransport::starttls_relay(host.as_str())
+            .unwrap()
+            .credentials(credentials)
+            .authentication(vec![Mechanism::Login])
+            .build(),
         _ => {
             panic!("Encryption must be one of (local, basic, startls, tls)")
         }

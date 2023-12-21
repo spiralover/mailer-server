@@ -1,10 +1,10 @@
+use crate::app_state::AppState;
 use actix_web::web::{block, Data, Json, Path, Query, ServiceConfig};
 use actix_web::{delete, get, patch, post, put, HttpRequest};
 use uuid::Uuid;
-use crate::app_state::AppState;
 
 use crate::enums::app_message::AppMessage;
-use crate::enums::permissions::Permissions;
+use crate::enums::auth_permission::AuthPermission;
 use crate::helpers::http::{IdPathParam, QueryParams};
 use crate::helpers::request::RequestHelper;
 use crate::helpers::DBPool;
@@ -33,16 +33,20 @@ pub fn application_controller(cfg: &mut ServiceConfig) {
 
 #[get("")]
 async fn index(q: Query<QueryParams>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(Permissions::ApplicationList)?;
+    req.verify_user_permission(AuthPermission::ApplicationList)?;
     block(move || ApplicationRepository.list(pool.get_ref(), q.into_inner()))
         .await
         .respond()
 }
 
 #[post("")]
-async fn store(form: Json<ApplicationCreateForm>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
+async fn store(
+    form: Json<ApplicationCreateForm>,
+    req: HttpRequest,
+    pool: Data<DBPool>,
+) -> HttpResult {
     let auth_id = req.auth_id();
-    req.verify_user_permission(Permissions::ApplicationKeyGenerate)?;
+    req.verify_user_permission(AuthPermission::ApplicationKeyGenerate)?;
     block(move || ApplicationService.create(pool.get_ref(), auth_id, form.into_inner()))
         .await
         .respond()
@@ -50,20 +54,26 @@ async fn store(form: Json<ApplicationCreateForm>, req: HttpRequest, pool: Data<D
 
 #[get("{id}")]
 async fn show(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(Permissions::ApplicationKeyGenerate)?;
+    req.verify_user_permission(AuthPermission::ApplicationKeyGenerate)?;
     block(move || ApplicationRepository.find_by_id(pool.get_ref(), id.to_owned()))
         .await
         .respond()
 }
 
 #[post("{id}/mails")]
-async fn mails(id: Path<Uuid>, req: HttpRequest, app: Data<AppState>, form: Json<MailPayload>) -> HttpResult {
-    req.verify_user_permission(Permissions::MailSend)?;
+async fn mails(
+    id: Path<Uuid>,
+    req: HttpRequest,
+    app: Data<AppState>,
+    form: Json<MailPayload>,
+) -> HttpResult {
+    req.verify_user_permission(AuthPermission::MailSend)?;
     let auth_id = req.auth_id();
 
     block(move || {
         // Verify user has access to this neuron
-        let app_id = ApplicationRepository.find_owned_by_id(&app.database().clone(), *id, auth_id)?;
+        let app_id =
+            ApplicationRepository.find_owned_by_id(&app.database().clone(), *id, auth_id)?;
 
         let total_mails = form.mails.len();
         for mail in form.mails.clone() {
@@ -90,13 +100,13 @@ async fn mails(id: Path<Uuid>, req: HttpRequest, app: Data<AppState>, form: Json
 
         Ok(AppMessage::SuccessMessage(Box::leak(message)))
     })
-        .await
-        .respond()
+    .await
+    .respond()
 }
 
 #[patch("{id}/activate")]
 async fn activate(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(Permissions::ApplicationKeyGenerate)?;
+    req.verify_user_permission(AuthPermission::ApplicationKeyGenerate)?;
     block(move || ApplicationService.activate(pool.get_ref(), id.to_owned()))
         .await
         .respond()
@@ -104,7 +114,7 @@ async fn activate(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpR
 
 #[patch("{id}/deactivate")]
 async fn deactivate(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(Permissions::ApplicationKeyGenerate)?;
+    req.verify_user_permission(AuthPermission::ApplicationKeyGenerate)?;
     block(move || ApplicationService.deactivate(pool.get_ref(), id.to_owned()))
         .await
         .respond()
@@ -117,7 +127,7 @@ async fn update(
     req: HttpRequest,
     pool: Data<DBPool>,
 ) -> HttpResult {
-    req.verify_user_permission(Permissions::ApplicationList)?;
+    req.verify_user_permission(AuthPermission::ApplicationList)?;
     block(move || ApplicationService.update(pool.get_ref(), id.to_owned(), form.into_inner()))
         .await
         .respond()
@@ -125,7 +135,7 @@ async fn update(
 
 #[delete("{id}")]
 async fn delete(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(Permissions::ApplicationDelete)?;
+    req.verify_user_permission(AuthPermission::ApplicationDelete)?;
     block(move || {
         ApplicationService
             .delete(pool.get_ref(), id.into_inner())
@@ -133,14 +143,14 @@ async fn delete(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpRes
 
         Ok(AppMessage::SuccessMessage("application deleted"))
     })
-        .await
-        .respond()
+    .await
+    .respond()
 }
 
 #[get("{id}/keys")]
 async fn keys(mut param: Path<IdPathParam>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
     let id = param.get_uuid()?;
-    req.verify_user_permission(Permissions::ApplicationKeyList)?;
+    req.verify_user_permission(AuthPermission::ApplicationKeyList)?;
     block(move || AppKeyRepository.find_active_by_app_id(pool.get_ref(), id))
         .await
         .respond()
@@ -154,7 +164,7 @@ async fn generate(
 ) -> HttpResult {
     let id = param.get_uuid()?;
     let auth_id = req.auth_id();
-    req.verify_user_permission(Permissions::ApplicationKeyGenerate)?;
+    req.verify_user_permission(AuthPermission::ApplicationKeyGenerate)?;
     block(move || AppKeyService.generate(pool.get_ref(), id, auth_id))
         .await
         .respond()

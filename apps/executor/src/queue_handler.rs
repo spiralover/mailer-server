@@ -28,10 +28,8 @@ pub(crate) fn handle_awaiting_queue(app: &AppState, thread_name: String) {
 
                             info!("[{}] handling awaiting: {}", thread_name.clone(), subject);
 
-                            payload.from = Option::from(match payload.from {
-                                None => app.mail_from.clone(),
-                                Some(mailbox) => mailbox,
-                            });
+                            payload.from =
+                                Option::from(payload.from.unwrap_or_else(|| app.mail_from.clone()));
 
                             match MailService.create(app.database(), payload) {
                                 Ok(mail) => {
@@ -169,8 +167,7 @@ pub(crate) fn handle_failure_queue(app: &AppState, thread_name: String) {
                                     }
                                 }
                                 false => {
-                                    let _ =
-                                        MailService.mark_as_failure(app.database(), response);
+                                    let _ = MailService.mark_as_failure(app.database(), response);
                                 }
                             };
                         }

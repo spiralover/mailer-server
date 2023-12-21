@@ -1,8 +1,8 @@
 use strum_macros::{Display, EnumString, EnumVariantNames};
 
-#[derive(Display, Debug, EnumString, EnumVariantNames)]
+#[derive(Display, Debug, Clone, EnumString, EnumVariantNames)]
 #[strum(serialize_all = "snake_case")]
-pub enum Roles {
+pub enum AuthRole {
     SuperAdmin,
     Admin,
     Staff,

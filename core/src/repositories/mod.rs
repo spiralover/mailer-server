@@ -17,3 +17,4 @@ pub mod user_ui_menu_item_repository;
 pub mod mail_address_repository;
 pub mod mail_error_repository;
 pub mod mail_repository;
+pub mod personal_access_token_repository;

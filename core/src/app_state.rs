@@ -12,12 +12,16 @@ pub struct AppState {
     pub app_name: String,
     pub app_desc: String,
     pub app_help_email: String,
+    pub app_frontend_url: String,
+    pub app_key: String,
+
+    pub auth_token_lifetime: i64,
+    pub auth_pat_prefix: String,
+
     pub mail_from: MailBox,
     pub mailer_application_id: String,
     pub mailer_system_user_id: String,
-    pub app_frontend_url: String,
-    pub app_key: String,
-    pub app_token_lifetime: i64,
+
     pub max_image_upload_size: u64,
     pub tera: Tera,
     pub smtp: SmtpTransport,

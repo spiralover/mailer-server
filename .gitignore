@@ -4,7 +4,6 @@
 /resources/static/uploads
 
 /.env
-/.mailer_name_lock
 /apps/user/.env
 /apps/executor/.env
 /users.json

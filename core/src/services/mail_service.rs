@@ -119,7 +119,7 @@ impl MailService {
         pool: &DBPool,
         response: MailFailureResponse,
     ) -> AppResult<Mail> {
-        self.log_failure(pool, response, MailStatus::Failed, false)
+        self.log_failure(pool, response, MailStatus::Failed, true)
     }
 
     pub fn mark_as_retrying(

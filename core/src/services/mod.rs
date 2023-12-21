@@ -19,3 +19,4 @@ pub mod redis_service;
 pub mod mail_error_service;
 pub mod mail_address_service;
 pub mod mailer_service;
+pub mod personal_access_token_service;

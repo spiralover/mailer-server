@@ -19,6 +19,7 @@ pub mod user_ui_menu_item;
 pub mod mail;
 pub mod mail_address;
 pub mod mail_error;
+pub mod personal_access_token;
 
 // type alias to use in multiple places
 pub type DBPool = r2d2::Pool<ConnectionManager<PgConnection>>;

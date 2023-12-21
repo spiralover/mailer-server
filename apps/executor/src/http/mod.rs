@@ -1,10 +1,10 @@
 use crate::http::system_controller::system_controller;
 use core::http::kernel::{Controller, Route};
-use core::http::middlewares::auth_middleware::Auth;
+use core::http::middlewares::auth_middleware::AuthMiddleware;
 
 pub(crate) mod system_controller;
 
-pub fn routes() -> Vec<Route<Auth>> {
+pub fn routes() -> Vec<Route<AuthMiddleware>> {
     let routes = vec![Route {
         auth: None,
         prefix: String::from("/system"),

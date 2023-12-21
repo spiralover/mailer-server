@@ -3,8 +3,8 @@ use actix_web::web::{block, Data, Query, ServiceConfig};
 use actix_web::{get, post, HttpRequest, HttpResponse};
 
 use crate::app_state::AppState;
+use crate::enums::auth_permission::AuthPermission;
 use crate::enums::entities::Entities;
-use crate::enums::permissions::Permissions;
 use crate::helpers::http::{QueryParams, UploadForm};
 use crate::helpers::request::RequestHelper;
 use crate::helpers::string::string;
@@ -43,7 +43,7 @@ async fn upload_passport(
     form: MultipartForm<UploadForm>,
     pool: Data<DBPool>,
 ) -> HttpResult {
-    req.verify_user_permission(Permissions::UserMyProfileUploadPassport)?;
+    req.verify_user_permission(AuthPermission::UserMyProfileUploadPassport)?;
     let auth_user = req.auth_user();
 
     block(move || {

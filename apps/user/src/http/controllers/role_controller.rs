@@ -2,7 +2,7 @@ use actix_web::web::{block, Data, Json, Path, Query, ServiceConfig};
 use actix_web::{delete, get, patch, post, put, HttpRequest};
 use uuid::Uuid;
 
-use core::enums::permissions::Permissions;
+use core::enums::auth_permission::AuthPermission;
 use core::helpers::http::QueryParams;
 use core::helpers::request::RequestHelper;
 use core::helpers::DBPool;
@@ -33,7 +33,7 @@ pub fn role_controller(cfg: &mut ServiceConfig) {
 
 #[get("")]
 async fn index(q: Query<QueryParams>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(Permissions::RoleList)?;
+    req.verify_user_permission(AuthPermission::RoleList)?;
     block(move || RoleRepository.list(pool.get_ref(), q.into_inner()))
         .await
         .respond()
@@ -42,7 +42,7 @@ async fn index(q: Query<QueryParams>, req: HttpRequest, pool: Data<DBPool>) -> H
 #[post("")]
 async fn store(req: HttpRequest, pool: Data<DBPool>, form: Json<RoleCreateForm>) -> HttpResult {
     let auth_id = req.auth_id();
-    req.verify_user_permission(Permissions::RoleCreate)?;
+    req.verify_user_permission(AuthPermission::RoleCreate)?;
     block(move || RoleService.create(pool.get_ref(), auth_id, form.into_inner()))
         .await
         .respond()
@@ -50,7 +50,7 @@ async fn store(req: HttpRequest, pool: Data<DBPool>, form: Json<RoleCreateForm>)
 
 #[get("{id}")]
 async fn show(req: HttpRequest, pool: Data<DBPool>, id: Path<Uuid>) -> HttpResult {
-    req.verify_user_permission(Permissions::RoleRead)?;
+    req.verify_user_permission(AuthPermission::RoleRead)?;
     block(move || RoleRepository.find_by_id(pool.get_ref(), *id))
         .await
         .respond()
@@ -63,7 +63,7 @@ async fn update(
     id: Path<Uuid>,
     form: Json<RoleCreateForm>,
 ) -> HttpResult {
-    req.verify_user_permission(Permissions::RoleUpdate)?;
+    req.verify_user_permission(AuthPermission::RoleUpdate)?;
     block(move || RoleService.update(pool.get_ref(), *id, form.into_inner()))
         .await
         .respond()
@@ -76,7 +76,7 @@ async fn users(
     id: Path<Uuid>,
     q: Query<QueryParams>,
 ) -> HttpResult {
-    req.verify_user_permission(Permissions::RoleUserList)?;
+    req.verify_user_permission(AuthPermission::RoleUserList)?;
     block(move || UserRepository.list_by_role(pool.get_ref(), id.into_inner(), q.into_inner()))
         .await
         .respond()
@@ -84,7 +84,7 @@ async fn users(
 
 #[patch("{id}/activate")]
 async fn activate(req: HttpRequest, pool: Data<DBPool>, id: Path<Uuid>) -> HttpResult {
-    req.verify_user_permission(Permissions::RoleActivate)?;
+    req.verify_user_permission(AuthPermission::RoleActivate)?;
     block(move || RoleService.activate(pool.get_ref(), *id))
         .await
         .respond()
@@ -92,7 +92,7 @@ async fn activate(req: HttpRequest, pool: Data<DBPool>, id: Path<Uuid>) -> HttpR
 
 #[patch("{id}/deactivate")]
 async fn deactivate(req: HttpRequest, pool: Data<DBPool>, id: Path<Uuid>) -> HttpResult {
-    req.verify_user_permission(Permissions::RoleDeactivate)?;
+    req.verify_user_permission(AuthPermission::RoleDeactivate)?;
     block(move || RoleService.deactivate(pool.get_ref(), *id))
         .await
         .respond()
@@ -105,12 +105,12 @@ async fn permissions(
     req: HttpRequest,
     pool: Data<DBPool>,
 ) -> HttpResult {
-    req.verify_user_permission(Permissions::RoleList)?;
+    req.verify_user_permission(AuthPermission::RoleList)?;
     block(move || {
         RolePermissionRepository.list_paginated_by_role_id(pool.get_ref(), *id, q.into_inner())
     })
-        .await
-        .respond()
+    .await
+    .respond()
 }
 
 #[get("{id}/assignable-permissions")]
@@ -119,7 +119,7 @@ async fn assignable_permissions(
     req: HttpRequest,
     pool: Data<DBPool>,
 ) -> HttpResult {
-    req.verify_user_permission(Permissions::RoleList)?;
+    req.verify_user_permission(AuthPermission::RoleList)?;
     block(move || RoleRepository.list_assignable_permissions(pool.get_ref(), *id))
         .await
         .respond()
@@ -133,7 +133,7 @@ async fn add_permissions(
     pool: Data<DBPool>,
 ) -> HttpResult {
     let auth_id = req.auth_id();
-    req.verify_user_permission(Permissions::RolePermissionCreate)?;
+    req.verify_user_permission(AuthPermission::RolePermissionCreate)?;
     block(move || {
         let mut perms = vec![];
         let ids = form.into_inner().ids;
@@ -147,8 +147,8 @@ async fn add_permissions(
 
         Ok(perms)
     })
-        .await
-        .respond()
+    .await
+    .respond()
 }
 
 #[delete("{id}/permissions/{pid}")]
@@ -157,7 +157,7 @@ async fn permission_remove(
     req: HttpRequest,
     pool: Data<DBPool>,
 ) -> HttpResult {
-    req.verify_user_permission(Permissions::RoleList)?;
+    req.verify_user_permission(AuthPermission::RoleList)?;
     block(move || RolePermissionService.remove(pool.get_ref(), ids.1))
         .await
         .respond()
@@ -165,7 +165,7 @@ async fn permission_remove(
 
 #[get("find-by-name/{name}")]
 async fn role_find_by_name(name: Path<String>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(Permissions::RoleList)?;
+    req.verify_user_permission(AuthPermission::RoleList)?;
     block(move || RoleRepository.find_by_name(pool.get_ref(), name.into_inner()))
         .await
         .respond()

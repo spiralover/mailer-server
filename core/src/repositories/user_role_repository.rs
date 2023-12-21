@@ -1,5 +1,5 @@
-use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use diesel::dsl::not;
+use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use uuid::Uuid;
 
 use crate::helpers::db::{DatabaseConnectionHelper, OptionalResult};
@@ -41,6 +41,20 @@ impl UserRoleRepository {
             .filter(user_roles::user_id.eq(id))
             .filter(user_roles::deleted_at.is_null())
             .get_results::<UserRole>(&mut pool.conn())
+            .into_app_result()
+    }
+
+    pub fn list_role_names_by_user_id(
+        &mut self,
+        pool: &DBPool,
+        id: Uuid,
+    ) -> AppResult<Vec<String>> {
+        user_roles::table
+            .inner_join(roles::table)
+            .select(roles::role_name)
+            .filter(user_roles::user_id.eq(id))
+            .filter(user_roles::deleted_at.is_null())
+            .get_results::<String>(&mut pool.conn())
             .into_app_result()
     }
 

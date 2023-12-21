@@ -2,7 +2,7 @@ use actix_web::web::{block, Data, Json, Path, Query, ServiceConfig};
 use actix_web::{delete, get, post, put, HttpRequest};
 use uuid::Uuid;
 
-use core::enums::permissions::Permissions;
+use core::enums::auth_permission::AuthPermission;
 use core::helpers::http::QueryParams;
 use core::helpers::request::RequestHelper;
 use core::helpers::DBPool;
@@ -24,7 +24,7 @@ pub fn ui_menu_controller(cfg: &mut ServiceConfig) {
 
 #[get("")]
 async fn index(q: Query<QueryParams>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(Permissions::UiMenuList)?;
+    req.verify_user_permission(AuthPermission::UiMenuList)?;
     block(move || UiMenuRepository.list(pool.get_ref(), q.0))
         .await
         .respond()
@@ -33,7 +33,7 @@ async fn index(q: Query<QueryParams>, req: HttpRequest, pool: Data<DBPool>) -> H
 #[post("")]
 async fn store(form: Json<CreateForm>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
     let auth_id = req.auth_id();
-    req.verify_user_permission(Permissions::UiMenuCreate)?;
+    req.verify_user_permission(AuthPermission::UiMenuCreate)?;
     block(move || UiMenuService.create(pool.get_ref(), auth_id, form.0))
         .await
         .respond()
@@ -46,7 +46,7 @@ async fn update(
     req: HttpRequest,
     pool: Data<DBPool>,
 ) -> HttpResult {
-    req.verify_user_permission(Permissions::UiMenuUpdate)?;
+    req.verify_user_permission(AuthPermission::UiMenuUpdate)?;
     block(move || UiMenuService.update(pool.get_ref(), *id, form.0))
         .await
         .respond()
@@ -54,7 +54,7 @@ async fn update(
 
 #[get("{id}")]
 async fn show(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(Permissions::UiMenuRead)?;
+    req.verify_user_permission(AuthPermission::UiMenuRead)?;
     block(move || UiMenuRepository.find_by_id(pool.get_ref(), *id))
         .await
         .respond()
@@ -62,7 +62,7 @@ async fn show(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpResul
 
 #[delete("{id}")]
 async fn delete(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(Permissions::UiMenuDelete)?;
+    req.verify_user_permission(AuthPermission::UiMenuDelete)?;
     block(move || UiMenuService.delete(pool.get_ref(), *id))
         .await
         .respond()
@@ -75,7 +75,7 @@ async fn menu_items(
     req: HttpRequest,
     pool: Data<DBPool>,
 ) -> HttpResult {
-    req.verify_user_permission(Permissions::UiMenuRead)?;
+    req.verify_user_permission(AuthPermission::UiMenuRead)?;
     block(move || UiMenuItemRepository.list_by_menu_id(pool.get_ref(), *id, q.0))
         .await
         .respond()

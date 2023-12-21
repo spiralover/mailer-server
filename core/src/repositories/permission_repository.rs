@@ -1,7 +1,7 @@
 use diesel::{ExpressionMethods, PgTextExpressionMethods, QueryDsl, RunQueryDsl};
 use uuid::Uuid;
 
-use crate::enums::permissions::Permissions;
+use crate::enums::auth_permission::AuthPermission;
 use crate::helpers::db::{DatabaseConnectionHelper, OptionalResult};
 use crate::helpers::db_pagination::{PageData, Paginate};
 use crate::helpers::http::QueryParams;
@@ -15,11 +15,7 @@ use crate::schema::permissions;
 pub struct PermissionRepository;
 
 impl PermissionRepository {
-    pub fn list(
-        &mut self,
-        pool: &DBPool,
-        q: QueryParams,
-    ) -> AppResult<PageData<Permission>> {
+    pub fn list(&mut self, pool: &DBPool, q: QueryParams) -> AppResult<PageData<Permission>> {
         permissions::table
             .filter(permissions::permission_name.ilike(q.get_search_query_like()))
             .paginate(q.get_page())
@@ -52,7 +48,7 @@ impl PermissionRepository {
     pub fn get_by_names(
         &mut self,
         pool: &DBPool,
-        names: Vec<Permissions>,
+        names: Vec<AuthPermission>,
     ) -> AppResult<Vec<Permission>> {
         let names: Vec<String> = names.iter().map(|p| p.to_string()).collect();
         permissions::table

@@ -4,7 +4,7 @@ use actix_web::{HttpMessage, HttpRequest};
 use uuid::Uuid;
 
 use crate::app_state::AppState;
-use crate::enums::permissions::Permissions;
+use crate::enums::auth_permission::AuthPermission;
 use crate::helpers::auth::check_permission;
 use crate::helpers::DBPool;
 use crate::models::user::User;
@@ -24,7 +24,7 @@ pub trait RequestHelper {
 
     fn db_pool(&self) -> &DBPool;
 
-    fn verify_user_permission(&self, p: Permissions) -> AppResult<()>;
+    fn verify_user_permission(&self, p: AuthPermission) -> AppResult<()>;
     fn get_client_info(&self) -> ClientInfo;
 }
 
@@ -45,7 +45,7 @@ impl RequestHelper for HttpRequest {
         self.app_state().database()
     }
 
-    fn verify_user_permission(&self, p: Permissions) -> AppResult<()> {
+    fn verify_user_permission(&self, p: AuthPermission) -> AppResult<()> {
         check_permission(self.to_owned(), p)
     }
 

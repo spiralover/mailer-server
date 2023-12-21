@@ -7,7 +7,7 @@ use actix_web::middleware::Logger;
 use actix_web::web::ServiceConfig;
 use actix_web::{web, Route as ActixRoute};
 
-use crate::http::middlewares::auth_middleware::Auth;
+use crate::http::middlewares::auth_middleware::AuthMiddleware;
 
 #[derive(Clone)]
 pub struct Controller {
@@ -22,7 +22,7 @@ pub struct Route<T> {
     pub controllers: Vec<Controller>,
 }
 
-pub fn register_routes(actix_config: &mut ServiceConfig, routes: Vec<Route<Auth>>) {
+pub fn register_routes(actix_config: &mut ServiceConfig, routes: Vec<Route<AuthMiddleware>>) {
     log::debug!("discovering routes...");
 
     for route in routes {

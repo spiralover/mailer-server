@@ -3,8 +3,8 @@ use actix_web::web::{block, Data, ServiceConfig};
 use actix_web::{post, HttpRequest};
 
 use crate::app_state::AppState;
+use crate::enums::auth_permission::AuthPermission;
 use crate::enums::entities::Entities;
-use crate::enums::permissions::Permissions;
 use crate::helpers::http::UploadForm;
 use crate::helpers::request::RequestHelper;
 use crate::helpers::string::string;
@@ -23,7 +23,7 @@ async fn upload_temp_file(
     app: Data<AppState>,
     form: MultipartForm<UploadForm>,
 ) -> HttpResult {
-    req.verify_user_permission(Permissions::MiscUploadTempFile)?;
+    req.verify_user_permission(AuthPermission::MiscUploadTempFile)?;
     let auth_user = req.auth_user();
 
     block(move || {

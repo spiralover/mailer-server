@@ -7,8 +7,8 @@ use validator::Validate;
 
 use core::app_state::AppState;
 use core::enums::app_message::AppMessage::SuccessMessage;
+use core::enums::auth_permission::AuthPermission;
 use core::enums::entities::Entities;
-use core::enums::permissions::Permissions;
 use core::helpers::http::{QueryParams, UploadForm};
 use core::helpers::request::RequestHelper;
 use core::helpers::string::string;
@@ -63,7 +63,7 @@ pub fn user_controller(cfg: &mut ServiceConfig) {
 
 #[get("")]
 async fn index(q: Query<QueryParams>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(Permissions::UserList)?;
+    req.verify_user_permission(AuthPermission::UserList)?;
     block(move || {
         UserRepository
             .list(pool.get_ref(), q.0)
@@ -82,14 +82,14 @@ async fn index(q: Query<QueryParams>, req: HttpRequest, pool: Data<DBPool>) -> H
                 paginated
             })
     })
-        .await
-        .respond()
+    .await
+    .respond()
 }
 
 #[post("")]
 async fn store(form: Json<UserRegisterForm>, req: HttpRequest, app: Data<AppState>) -> HttpResult {
     form.validate()?;
-    req.verify_user_permission(Permissions::UserCreate)?;
+    req.verify_user_permission(AuthPermission::UserCreate)?;
 
     block(move || {
         let default_role_id = RoleRepository.get_default_role_id(app.database());
@@ -102,13 +102,13 @@ async fn store(form: Json<UserRegisterForm>, req: HttpRequest, app: Data<AppStat
             )
             .map(|u| u.into_sharable())
     })
-        .await
-        .respond()
+    .await
+    .respond()
 }
 
 #[get("{id}")]
 async fn show(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(Permissions::UserRead)?;
+    req.verify_user_permission(AuthPermission::UserRead)?;
     block(move || UserService.get_profile(pool.get_ref(), *id))
         .await
         .respond()
@@ -121,37 +121,37 @@ async fn update(
     req: HttpRequest,
     pool: Data<DBPool>,
 ) -> HttpResult {
-    req.verify_user_permission(Permissions::UserUpdate)?;
+    req.verify_user_permission(AuthPermission::UserUpdate)?;
     block(move || {
         UserService.update(pool.get_ref(), *id, form.0)?;
         UserService.get_profile(pool.get_ref(), *id)
     })
-        .await
-        .respond()
+    .await
+    .respond()
 }
 
 #[patch("{id}/activate")]
 async fn activate(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(Permissions::UserActivate)?;
+    req.verify_user_permission(AuthPermission::UserActivate)?;
     block(move || {
         UserService
             .activate(pool.get_ref(), *id)
             .map(|u| u.into_sharable())
     })
-        .await
-        .respond()
+    .await
+    .respond()
 }
 
 #[patch("{id}/deactivate")]
 async fn deactivate(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(Permissions::UserDeactivate)?;
+    req.verify_user_permission(AuthPermission::UserDeactivate)?;
     block(move || {
         UserService
             .deactivate(pool.get_ref(), *id)
             .map(|u| u.into_sharable())
     })
-        .await
-        .respond()
+    .await
+    .respond()
 }
 
 #[patch("{id}/change-password")]
@@ -164,15 +164,15 @@ async fn change_password(
     let form = form.0;
     form.validate()?;
 
-    req.verify_user_permission(Permissions::UserChangePassword)?;
+    req.verify_user_permission(AuthPermission::UserChangePassword)?;
 
     block(move || {
         UserService
             .change_password(pool.get_ref(), *id, form.password)
             .map(|u| u.into_sharable())
     })
-        .await
-        .respond()
+    .await
+    .respond()
 }
 
 #[get("{id}/auth-attempts")]
@@ -182,18 +182,18 @@ async fn auth_attempts(
     req: HttpRequest,
     pool: Data<DBPool>,
 ) -> HttpResult {
-    req.verify_user_permission(Permissions::UserAuthAttemptList)?;
+    req.verify_user_permission(AuthPermission::UserAuthAttemptList)?;
     block(move || {
         let email = UserRepository.fetch_email(pool.get_ref(), *id)?;
         AuthAttemptRepository.list_by_email(pool.get_ref(), email, q.0)
     })
-        .await
-        .respond()
+    .await
+    .respond()
 }
 
 #[get("{id}/roles")]
 async fn roles(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(Permissions::UserRoleList)?;
+    req.verify_user_permission(AuthPermission::UserRoleList)?;
     block(move || UserRoleRepository.list_paginated_by_user_id(pool.get_ref(), *id))
         .await
         .respond()
@@ -206,7 +206,7 @@ async fn assign_role(
     req: HttpRequest,
     pool: Data<DBPool>,
 ) -> HttpResult {
-    req.verify_user_permission(Permissions::UserRoleAssign)?;
+    req.verify_user_permission(AuthPermission::UserRoleAssign)?;
 
     let auth_id = req.auth_id();
     let role_id = form.0.role_id;
@@ -218,7 +218,7 @@ async fn assign_role(
 
 #[get("{id}/assignable-roles")]
 async fn assignable_roles(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(Permissions::UserRoleList)?;
+    req.verify_user_permission(AuthPermission::UserRoleList)?;
     block(move || UserRoleRepository.list_assignable(pool.get_ref(), *id))
         .await
         .respond()
@@ -230,7 +230,7 @@ async fn un_assign_role(
     req: HttpRequest,
     pool: Data<DBPool>,
 ) -> HttpResult {
-    req.verify_user_permission(Permissions::UserRoleUnAssign)?;
+    req.verify_user_permission(AuthPermission::UserRoleUnAssign)?;
 
     let (_user_id, user_role_id) = path.into_inner();
 
@@ -246,7 +246,7 @@ async fn individual_permissions(
     req: HttpRequest,
     pool: Data<DBPool>,
 ) -> HttpResult {
-    req.verify_user_permission(Permissions::UserPermissionList)?;
+    req.verify_user_permission(AuthPermission::UserPermissionList)?;
     block(move || UserPermissionRepository.list_paginated_by_user_id(pool.get_ref(), *id, q.0))
         .await
         .respond()
@@ -259,7 +259,7 @@ async fn assignable_permissions(
     q: Query<QueryParams>,
     pool: Data<DBPool>,
 ) -> HttpResult {
-    req.verify_user_permission(Permissions::UserPermissionList)?;
+    req.verify_user_permission(AuthPermission::UserPermissionList)?;
     block(move || UserPermissionRepository.list_assignable(pool.get_ref(), *id, q.0))
         .await
         .respond()
@@ -272,7 +272,7 @@ async fn add_permission(
     req: HttpRequest,
     pool: Data<DBPool>,
 ) -> HttpResult {
-    req.verify_user_permission(Permissions::UserPermissionCreate)?;
+    req.verify_user_permission(AuthPermission::UserPermissionCreate)?;
     let auth_id = req.auth_id();
 
     block(move || {
@@ -289,8 +289,8 @@ async fn add_permission(
 
         Ok(permissions)
     })
-        .await
-        .respond()
+    .await
+    .respond()
 }
 
 #[delete("{id}/permissions/{pid}")]
@@ -299,7 +299,7 @@ async fn remove_permission(
     req: HttpRequest,
     pool: Data<DBPool>,
 ) -> HttpResult {
-    req.verify_user_permission(Permissions::UserPermissionDelete)?;
+    req.verify_user_permission(AuthPermission::UserPermissionDelete)?;
     block(move || RoleService.user_permission_remove(pool.get_ref(), path.into_inner().1))
         .await
         .respond()
@@ -312,7 +312,7 @@ async fn menus(
     pool: Data<DBPool>,
     q: Query<QueryParams>,
 ) -> HttpResult {
-    req.verify_user_permission(Permissions::UserUiMenuItemList)?;
+    req.verify_user_permission(AuthPermission::UserUiMenuItemList)?;
     block(move || UserUiMenuItemRepository.list_menu_by_user_id(pool.get_ref(), *id, q.0))
         .await
         .respond()
@@ -325,7 +325,7 @@ async fn menu_items(
     pool: Data<DBPool>,
     q: Query<QueryParams>,
 ) -> HttpResult {
-    req.verify_user_permission(Permissions::UserUiMenuItemList)?;
+    req.verify_user_permission(AuthPermission::UserUiMenuItemList)?;
     block(move || UserUiMenuItemRepository.list_menu_item_by_user_id(pool.get_ref(), *id, q.0))
         .await
         .respond()
@@ -333,7 +333,7 @@ async fn menu_items(
 
 #[get("{id}/assignable-menu-items")]
 async fn assignable_menu_items(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(Permissions::UserUiMenuItemList)?;
+    req.verify_user_permission(AuthPermission::UserUiMenuItemList)?;
     block(move || UserUiMenuItemRepository.list_assignable(pool.get_ref(), *id))
         .await
         .respond()
@@ -346,7 +346,7 @@ async fn add_menu_item(
     pool: Data<DBPool>,
     form: Json<UserUiMenuItemCreateForm>,
 ) -> HttpResult {
-    req.verify_user_permission(Permissions::UserUiMenuItemList)?;
+    req.verify_user_permission(AuthPermission::UserUiMenuItemList)?;
     let auth_id = req.auth_id();
 
     block(move || {
@@ -370,8 +370,8 @@ async fn add_menu_item(
 
         Ok(items)
     })
-        .await
-        .respond()
+    .await
+    .respond()
 }
 
 #[delete("{id}/menu-items/{mid}")]
@@ -380,15 +380,15 @@ async fn remove_menu_item(
     req: HttpRequest,
     pool: Data<DBPool>,
 ) -> HttpResult {
-    req.verify_user_permission(Permissions::UserUiMenuItemDelete)?;
+    req.verify_user_permission(AuthPermission::UserUiMenuItemDelete)?;
     block(move || {
         let ids = path.into_inner();
         UserUiMenuItemService
             .delete_by_item_id(pool.get_ref(), ids.0, ids.1)
             .map(|_| SuccessMessage("removed"))
     })
-        .await
-        .respond()
+    .await
+    .respond()
 }
 
 #[post("{id}/passport")]
@@ -398,7 +398,7 @@ async fn upload_passport(
     form: MultipartForm<UploadForm>,
     app: Data<AppState>,
 ) -> HttpResult {
-    req.verify_user_permission(Permissions::UserUploadPassport)?;
+    req.verify_user_permission(AuthPermission::UserUploadPassport)?;
     let auth_id = req.auth_id();
 
     block(move || {
@@ -422,6 +422,6 @@ async fn upload_passport(
             .change_profile_picture(&pool, user, file.file_path)
             .map(|u| u.into_sharable())
     })
-        .await
-        .respond()
+    .await
+    .respond()
 }

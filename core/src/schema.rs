@@ -204,6 +204,25 @@ diesel::table! {
 }
 
 diesel::table! {
+    personal_access_tokens (pat_id) {
+        pat_id -> Uuid,
+        user_id -> Uuid,
+        #[max_length = 1000]
+        title -> Varchar,
+        #[max_length = 1500]
+        comment -> Varchar,
+        #[max_length = 1500]
+        token -> Varchar,
+        #[max_length = 50]
+        status -> Varchar,
+        expired_at -> Timestamp,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+        deleted_at -> Nullable<Timestamp>,
+    }
+}
+
+diesel::table! {
     role_permissions (role_permission_id) {
         role_permission_id -> Uuid,
         created_by -> Uuid,
@@ -367,6 +386,7 @@ diesel::joinable!(mails -> users (created_by));
 diesel::joinable!(notifications -> users (receiver_id));
 diesel::joinable!(password_resets -> users (user_id));
 diesel::joinable!(permissions -> users (created_by));
+diesel::joinable!(personal_access_tokens -> users (user_id));
 diesel::joinable!(role_permissions -> permissions (permission_id));
 diesel::joinable!(role_permissions -> roles (role_id));
 diesel::joinable!(role_permissions -> users (created_by));
@@ -392,6 +412,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     notifications,
     password_resets,
     permissions,
+    personal_access_tokens,
     role_permissions,
     roles,
     ui_menu_items,

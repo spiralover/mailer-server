@@ -12,17 +12,17 @@ use strum::VariantNames;
 use uuid::Uuid;
 
 use core::app_state::AppState;
+use core::enums::auth_permission::AuthPermission;
+use core::enums::auth_role::AuthRole;
 use core::helpers::responder::json_success_message;
 use core::models::role::RoleCreateForm;
 use core::models::user::{UserRegisterForm, UserStatus};
 use core::models::user_ui_menu_item::MenuItemCreateDto;
 use core::models::DBPool;
-use core::enums::permissions::Permissions;
 use core::repositories::permission_repository::PermissionRepository;
 use core::repositories::role_repository::RoleRepository;
 use core::repositories::ui_menu_item_repository::UiMenuItemRepository;
 use core::results::AppResult;
-use core::enums::roles::Roles;
 use core::services::permission_service::PermissionService;
 use core::services::role_service::RoleService;
 use core::services::user_service::UserService;
@@ -49,7 +49,7 @@ async fn database_seed(app: Data<AppState>) -> HttpResponse {
     let db_pool = app.database();
 
     // Create Roles
-    for role_name in Roles::VARIANTS {
+    for role_name in AuthRole::VARIANTS {
         let _role = RoleService
             .create(
                 db_pool,
@@ -65,7 +65,7 @@ async fn database_seed(app: Data<AppState>) -> HttpResponse {
     // Seed Permission
     log::info!("seeding permissions...");
     let mut permissions = vec![];
-    for permission in Permissions::VARIANTS {
+    for permission in AuthPermission::VARIANTS {
         let perm = PermissionService
             .create(
                 db_pool,
@@ -91,15 +91,15 @@ async fn database_seed(app: Data<AppState>) -> HttpResponse {
 
     // USER ROLE
     let super_admin_role = RoleRepository
-        .find_by_name(db_pool, Roles::SuperAdmin.to_string())
+        .find_by_name(db_pool, AuthRole::SuperAdmin.to_string())
         .unwrap();
 
     let admin_role = RoleRepository
-        .find_by_name(db_pool, Roles::Admin.to_string())
+        .find_by_name(db_pool, AuthRole::Admin.to_string())
         .unwrap();
 
     let user_role = RoleRepository
-        .find_by_name(db_pool, Roles::Staff.to_string())
+        .find_by_name(db_pool, AuthRole::Staff.to_string())
         .unwrap();
 
     // ASSIGN BASIC PERMISSIONS TO ROLE
@@ -184,22 +184,19 @@ async fn seed_users(app: Arc<AppState>) {
         let email = user.email.clone();
         let split_email: Vec<&str> = email.split('@').collect();
 
-        users.push(
-            UserService
-                .create(
-                    app.clone(),
-                    default_role_id,
-                    UserRegisterForm {
-                        email: user.email,
-                        username: user.username,
-                        first_name: user.first_name,
-                        last_name: user.last_name,
-                        created_by: None,
-                        password: format!("#{}.{}", split_email.first().unwrap(), 576),
-                    },
-                    Some(UserStatus::Active),
-                ),
-        )
+        users.push(UserService.create(
+            app.clone(),
+            default_role_id,
+            UserRegisterForm {
+                email: user.email,
+                username: user.username,
+                first_name: user.first_name,
+                last_name: user.last_name,
+                created_by: None,
+                password: format!("#{}.{}", split_email.first().unwrap(), 576),
+            },
+            Some(UserStatus::Active),
+        ))
     }
 }
 
@@ -209,9 +206,9 @@ fn give_basic_permissions_to_roles(
     roles: Vec<Uuid>,
 ) -> AppResult<()> {
     let default_permission_names = vec![
-        Permissions::UserMyProfileUpdate,
-        Permissions::UserMyProfileUploadPassport,
-        Permissions::UserMyProfileListAuthAttempt,
+        AuthPermission::UserMyProfileUpdate,
+        AuthPermission::UserMyProfileUploadPassport,
+        AuthPermission::UserMyProfileListAuthAttempt,
     ];
 
     let permissions = PermissionRepository

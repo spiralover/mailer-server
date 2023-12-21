@@ -9,4 +9,3 @@ pub mod results;
 pub mod schema;
 pub mod services;
 pub mod user_setup;
-pub mod uuid;

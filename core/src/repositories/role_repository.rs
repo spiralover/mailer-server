@@ -1,8 +1,8 @@
-use diesel::{ExpressionMethods, PgTextExpressionMethods, QueryDsl, RunQueryDsl, SaveChangesDsl};
 use diesel::dsl::not;
+use diesel::{ExpressionMethods, PgTextExpressionMethods, QueryDsl, RunQueryDsl, SaveChangesDsl};
 use uuid::Uuid;
 
-use crate::enums::roles::Roles;
+use crate::enums::auth_role::AuthRole;
 use crate::helpers::db::{DatabaseConnectionHelper, OptionalResult};
 use crate::helpers::db_pagination::{PageData, Paginate};
 use crate::helpers::http::QueryParams;
@@ -92,7 +92,7 @@ impl RoleRepository {
 
     pub fn get_default_role_id(&mut self, pool: &DBPool) -> Uuid {
         RoleRepository
-            .find_by_name(pool, Roles::Staff.to_string())
+            .find_by_name(pool, AuthRole::Staff.to_string())
             .unwrap()
             .role_id
     }

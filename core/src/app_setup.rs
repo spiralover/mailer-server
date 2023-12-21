@@ -25,6 +25,15 @@ pub async fn make_app_state() -> AppState {
     let redis = establish_redis_connection();
 
     AppState {
+        app_name: env::var("APP_NAME").unwrap(),
+        app_desc: env::var("APP_DESC").unwrap(),
+        app_key: env::var("APP_KEY").unwrap(),
+        app_help_email: env::var("APP_HELP_EMAIL").unwrap(),
+        app_frontend_url: env::var("FRONTEND_ADDRESS").unwrap(),
+
+        auth_token_lifetime: env::var("AUTH_TOKEN_LIFETIME").unwrap().parse().unwrap(),
+        auth_pat_prefix: env::var("AUTH_PAT_PREFIX").unwrap(),
+
         mailer_application_id: env::var("MAILER_APPLICATION_ID").unwrap(),
         mailer_system_user_id: env::var("MAILER_SYSTEM_USER_ID").unwrap(),
         tera: tera_templating,
@@ -33,17 +42,11 @@ pub async fn make_app_state() -> AppState {
         smtp: create_smtp_client(),
         pulse_count: Arc::new(Mutex::new(0)),
         allowed_origins: get_allowed_origins(),
-        app_name: env::var("APP_NAME").unwrap(),
-        app_desc: env::var("APP_DESC").unwrap(),
-        app_key: env::var("APP_KEY").unwrap(),
         mail_from: MailBox {
             email: env::var("MAIL_FROM_EMAIL").unwrap(),
             name: env::var("MAIL_FROM_NAME").unwrap(),
         },
-        app_help_email: env::var("APP_HELP_EMAIL").unwrap(),
-        app_frontend_url: env::var("FRONTEND_ADDRESS").unwrap(),
         max_retrials: env::var("MAX_RETRIALS").unwrap().parse().unwrap(),
-        app_token_lifetime: env::var("AUTH_TOKEN_LIFETIME").unwrap().parse().unwrap(),
         max_image_upload_size: env::var("MAX_IMAGE_UPLOAD_SIZE").unwrap().parse().unwrap(),
 
         // redis

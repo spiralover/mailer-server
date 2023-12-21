@@ -147,15 +147,15 @@ impl MailService {
         }
 
         for cc in &saved.cc {
-            builder = builder.to(make_mailbox(cc))
+            builder = builder.cc(make_mailbox(cc))
         }
 
         for bcc in &saved.bcc {
-            builder = builder.to(make_mailbox(bcc))
+            builder = builder.bcc(make_mailbox(bcc))
         }
 
         for reply_to in &saved.reply_to {
-            builder = builder.to(make_mailbox(reply_to))
+            builder = builder.reply_to(make_mailbox(reply_to))
         }
 
         let email = builder

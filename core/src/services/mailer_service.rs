@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use chrono::{Datelike, Utc};
 use log::error;
-use serde::{Deserialize};
+use serde::Deserialize;
 use tera::Context;
 use tokio::spawn;
 use uuid::Uuid;
@@ -93,6 +93,7 @@ impl MailerService {
         ctx.insert("year", &Utc::now().year());
         ctx.insert("app_name", &self.app.app_name.clone());
         ctx.insert("app_desc", &self.app.app_desc.clone());
+        ctx.insert("app_logo_url", &self.app.app_logo_url.clone());
         ctx.insert("app_help_email", &self.app.app_help_email.clone());
         ctx.insert("app_frontend_url", &self.app.app_frontend_url.clone());
 

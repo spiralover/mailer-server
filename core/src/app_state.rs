@@ -14,6 +14,8 @@ pub struct AppState {
     pub app_help_email: String,
     pub app_frontend_url: String,
     pub app_key: String,
+    pub app_url: String,
+    pub app_logo_url: String,
 
     pub auth_token_lifetime: i64,
     pub auth_pat_prefix: String,

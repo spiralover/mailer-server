@@ -1,3 +1,4 @@
+use actix_web::http::StatusCode;
 use actix_web::web::Data;
 use actix_web::HttpRequest;
 use jsonwebtoken::{decode, DecodingKey, TokenData, Validation};
@@ -6,6 +7,7 @@ use crate::app_state::AppState;
 use crate::enums::app_message::AppMessage::{UnAuthorized, WarningMessage};
 use crate::enums::auth_permission::AuthPermission;
 use crate::helpers::request::RequestHelper;
+use crate::helpers::responder::{JsonResponse, JsonResponseEmptyMessage};
 use crate::results::{AppResult, HttpResult};
 use crate::services::auth_service::TokenClaims;
 use crate::services::role_service::RoleService;
@@ -64,4 +66,14 @@ pub(crate) fn decode_auth_token(
         &DecodingKey::from_secret(app_key.as_ref()),
         &Validation::default(),
     )
+}
+
+pub(crate) fn make_unauthorized_message(msg: &str) -> JsonResponse<JsonResponseEmptyMessage> {
+    JsonResponse {
+        code: 401,
+        success: false,
+        status: StatusCode::UNAUTHORIZED.to_string(),
+        message: Some(msg.to_string()),
+        data: JsonResponseEmptyMessage {},
+    }
 }

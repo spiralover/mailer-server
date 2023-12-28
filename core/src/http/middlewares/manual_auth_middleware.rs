@@ -1,4 +1,3 @@
-use std::fmt;
 use std::future::{ready, Ready};
 
 use actix_web::error::ErrorUnauthorized;
@@ -6,30 +5,16 @@ use actix_web::web::Data;
 use actix_web::{dev::Payload, Error as ActixWebError};
 use actix_web::{http, FromRequest, HttpMessage, HttpRequest};
 use log::error;
-use serde::Serialize;
 use uuid::Uuid;
 
 use crate::app_state::AppState;
 use crate::enums::app_message::AppMessage;
-use crate::helpers::auth::decode_auth_token;
+use crate::helpers::auth::{decode_auth_token, make_unauthorized_message};
 use crate::helpers::uuid::UniqueIdentifier;
 use crate::models::user::User;
 use crate::repositories::personal_access_token_repository::PersonaAccessTokenRepository;
 use crate::repositories::user_repository::UserRepository;
 use crate::results::http_result::ErroneousOptionResponse;
-
-#[derive(Debug, Serialize)]
-struct ErrorResponse<'a> {
-    success: bool,
-    status: i32,
-    message: &'a str,
-}
-
-impl fmt::Display for ErrorResponse<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", serde_json::to_string(&self).unwrap())
-    }
-}
 
 pub struct ManualAuthMiddleware {
     pub user_id: Uuid,
@@ -49,7 +34,7 @@ impl FromRequest for ManualAuthMiddleware {
             });
 
         if token.is_none() {
-            return ready(Err(ErrorUnauthorized(make_unauthorized_response(
+            return ready(Err(ErrorUnauthorized(make_unauthorized_message(
                 "You are not logged in, please provide token",
             ))));
         }
@@ -69,7 +54,7 @@ impl FromRequest for ManualAuthMiddleware {
                 let claims = match decoded {
                     Ok(c) => c.claims,
                     Err(_) => {
-                        return ready(Err(ErrorUnauthorized(make_unauthorized_response(
+                        return ready(Err(ErrorUnauthorized(make_unauthorized_message(
                             "Invalid auth token",
                         ))));
                     }
@@ -85,7 +70,7 @@ impl FromRequest for ManualAuthMiddleware {
                             "personal access token has expired on {:?}",
                             pat.expired_at
                         )));
-                        return ready(Err(ErrorUnauthorized(make_unauthorized_response(message))));
+                        return ready(Err(ErrorUnauthorized(make_unauthorized_message(message))));
                     }
 
                     UserRepository.find_by_id(app.database(), pat.user_id)
@@ -96,7 +81,7 @@ impl FromRequest for ManualAuthMiddleware {
                         _ => error!("pat error: {:?}", error),
                     }
 
-                    return ready(Err(ErrorUnauthorized(make_unauthorized_response(
+                    return ready(Err(ErrorUnauthorized(make_unauthorized_message(
                         "failed to authenticate personal access token",
                     ))));
                 }
@@ -104,7 +89,7 @@ impl FromRequest for ManualAuthMiddleware {
         };
 
         if user_lookup.is_error_or_empty() {
-            return ready(Err(ErrorUnauthorized(make_unauthorized_response(
+            return ready(Err(ErrorUnauthorized(make_unauthorized_message(
                 "Invalid auth token, user not found",
             ))));
         }
@@ -116,13 +101,5 @@ impl FromRequest for ManualAuthMiddleware {
         req.extensions_mut().insert::<User>(user);
 
         ready(Ok(ManualAuthMiddleware { user_id }))
-    }
-}
-
-fn make_unauthorized_response(message: &str) -> ErrorResponse {
-    ErrorResponse {
-        success: false,
-        status: 401,
-        message,
     }
 }

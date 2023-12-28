@@ -8,25 +8,17 @@ use actix_web::{
 };
 use futures_util::future::LocalBoxFuture;
 use log::error;
-use serde::Serialize;
 use uuid::Uuid;
 
 use crate::app_state::AppState;
 use crate::enums::auth_role::AuthRole;
-use crate::helpers::auth::decode_auth_token;
+use crate::helpers::auth::{decode_auth_token, make_unauthorized_message};
 use crate::helpers::uuid::UniqueIdentifier;
 use crate::models::user::User;
 use crate::repositories::personal_access_token_repository::PersonaAccessTokenRepository;
 use crate::repositories::user_repository::UserRepository;
 use crate::repositories::user_role_repository::UserRoleRepository;
 use crate::results::http_result::ErroneousOptionResponse;
-
-#[derive(Debug, Serialize)]
-struct ErrorResponse<'a> {
-    success: bool,
-    status: i32,
-    message: &'a str,
-}
 
 #[derive(Clone)]
 pub struct AuthMiddleware {
@@ -93,11 +85,9 @@ where
         if token.is_none() {
             //You are not logged in, please provide token
             let response = HttpResponse::Unauthorized()
-                .json(ErrorResponse {
-                    success: false,
-                    status: 401,
-                    message: "you are not logged in, please provide token",
-                })
+                .json(make_unauthorized_message(
+                    "you are not logged in, please provide token",
+                ))
                 .map_into_right_body();
 
             let (req, _pl) = request.into_parts();
@@ -117,11 +107,7 @@ where
 
                 if decoded.is_err() {
                     let response = HttpResponse::Unauthorized()
-                        .json(ErrorResponse {
-                            success: false,
-                            status: 401,
-                            message: "invalid authentication token",
-                        })
+                        .json(make_unauthorized_message("invalid authentication token"))
                         .map_into_right_body();
 
                     let (req, _pl) = request.into_parts();
@@ -138,17 +124,13 @@ where
             true => match PersonaAccessTokenRepository.find_by_token(app.database(), raw_token) {
                 Ok(pat) => {
                     if !pat.is_usable() {
-                        let message = Box::leak(Box::new(format!(
+                        let msg = Box::leak(Box::new(format!(
                             "personal access token has expired on {:?}",
                             pat.expired_at
                         )));
 
                         let response = HttpResponse::Unauthorized()
-                            .json(ErrorResponse {
-                                success: false,
-                                status: 401,
-                                message,
-                            })
+                            .json(make_unauthorized_message(msg))
                             .map_into_right_body();
 
                         let (req, _pl) = request.into_parts();
@@ -160,11 +142,9 @@ where
                 Err(err) => {
                     error!("pat error: {:?}", err);
                     let response = HttpResponse::Unauthorized()
-                        .json(ErrorResponse {
-                            success: false,
-                            status: 401,
-                            message: "failed to authenticate personal access token",
-                        })
+                        .json(make_unauthorized_message(
+                            "failed to authenticate personal access token",
+                        ))
                         .map_into_right_body();
 
                     let (req, _pl) = request.into_parts();
@@ -175,11 +155,9 @@ where
 
         if user_lookup.is_error_or_empty() {
             let response = HttpResponse::Unauthorized()
-                .json(ErrorResponse {
-                    success: false,
-                    status: 401,
-                    message: "Invalid auth token, user not found",
-                })
+                .json(make_unauthorized_message(
+                    "Invalid auth token, user not found",
+                ))
                 .map_into_right_body();
 
             let (req, _pl) = request.into_parts();
@@ -193,11 +171,9 @@ where
                 UserRoleRepository.list_role_names_by_user_id(app.database(), user.user_id);
             if roles_result.is_error_or_empty() {
                 let response = HttpResponse::Unauthorized()
-                    .json(ErrorResponse {
-                        success: false,
-                        status: 401,
-                        message: "Something went wrong trying to authenticate you",
-                    })
+                    .json(make_unauthorized_message(
+                        "Something went wrong trying to authenticate you",
+                    ))
                     .map_into_right_body();
 
                 error!(
@@ -220,11 +196,9 @@ where
 
             if !has_access {
                 let response = HttpResponse::Unauthorized()
-                    .json(ErrorResponse {
-                        success: false,
-                        status: 401,
-                        message: "You are not authorised to access requested resource(s)",
-                    })
+                    .json(make_unauthorized_message(
+                        "You are not authorised to access requested resource(s)",
+                    ))
                     .map_into_right_body();
 
                 let (req, _pl) = request.into_parts();

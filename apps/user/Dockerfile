@@ -1,4 +1,4 @@
-ARG IMAGE=rust:1.74-slim-bookworm
+ARG IMAGE=rust:1.75-slim-bookworm
 
 # Build
 FROM ${IMAGE} as planner

@@ -1,5 +1,13 @@
+use core::http::controllers::application_controller::application_controller;
+use core::http::controllers::auth_controller::auth_controller;
+use core::http::controllers::main_controller_guest::main_controller_guest;
+use core::http::controllers::misc_controller::misc_controller;
+use core::http::controllers::profile_controller::profile_controller;
+use core::http::controllers::setting_controller::setting_controller;
+use core::http::kernel::{Controller, Route};
+use core::http::middlewares::auth_middleware::AuthMiddleware;
+
 use crate::http::controllers::announcement_controller::announcement_controller;
-use crate::http::controllers::main_controller_guest::main_controller_guest;
 use crate::http::controllers::notification_controller::notification_controller;
 use crate::http::controllers::permission_controller::permission_controller;
 use crate::http::controllers::role_controller::role_controller;
@@ -7,16 +15,8 @@ use crate::http::controllers::system_controller::system_controller;
 use crate::http::controllers::ui_menu_controller::ui_menu_controller;
 use crate::http::controllers::ui_menu_item_controller::ui_menu_item_controller;
 use crate::http::controllers::user_controller::user_controller;
-use core::http::controllers::application_controller::application_controller;
-use core::http::controllers::auth_controller::auth_controller;
-use core::http::controllers::misc_controller::misc_controller;
-use core::http::controllers::profile_controller::profile_controller;
-use core::http::controllers::setting_controller::setting_controller;
-use core::http::kernel::{Controller, Route};
-use core::http::middlewares::auth_middleware::AuthMiddleware;
 
 mod announcement_controller;
-mod main_controller_guest;
 mod notification_controller;
 mod permission_controller;
 mod role_controller;

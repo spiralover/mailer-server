@@ -21,11 +21,14 @@ pub fn announcement_controller(cfg: &mut ServiceConfig) {
 }
 
 #[get("")]
-async fn index(req: HttpRequest, pool: Data<DBPool>, q: Query<QueryParams>) -> HttpResult {
-    req.verify_user_permission(AuthPermission::AnnouncementList)?;
-    block(move || AnnouncementRepository.list(pool.get_ref(), q.0))
-        .await
-        .respond()
+async fn index(req: HttpRequest, q: Query<QueryParams>) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::AnnouncementList)?;
+        AnnouncementRepository.list(ctx.database(), q.0)
+    })
+    .await
+    .respond()
 }
 
 #[post("")]

@@ -1,12 +1,14 @@
+use crate::app_context::AppContext;
 use actix_web::http::header;
 use actix_web::web::Data;
 use actix_web::{HttpMessage, HttpRequest};
+use std::sync::Arc;
 use uuid::Uuid;
 
+use super::auth::check_permission;
+use super::DBPool;
 use crate::app_state::AppState;
 use crate::enums::auth_permission::AuthPermission;
-use crate::helpers::auth::check_permission;
-use crate::helpers::DBPool;
 use crate::models::user::User;
 use crate::results::AppResult;
 
@@ -21,6 +23,8 @@ pub trait RequestHelper {
     fn auth_user(&self) -> User;
 
     fn app_state(&self) -> &AppState;
+
+    fn context(&self) -> Arc<AppContext>;
 
     fn db_pool(&self) -> &DBPool;
 
@@ -39,6 +43,15 @@ impl RequestHelper for HttpRequest {
 
     fn app_state(&self) -> &AppState {
         self.app_data::<Data<AppState>>().unwrap()
+    }
+
+    fn context(&self) -> Arc<AppContext> {
+        let app_state = self.app_data::<Data<AppState>>().unwrap();
+        Arc::new(AppContext {
+            auth_id: self.auth_user().user_id,
+            auth_user: self.auth_user(),
+            app: app_state.clone().into_inner(),
+        })
     }
 
     fn db_pool(&self) -> &DBPool {

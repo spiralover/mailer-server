@@ -1,7 +1,7 @@
+use crate::app_state::AppState;
 use actix_web::web::{block, Data, Json, Path, Query, ServiceConfig};
 use actix_web::{delete, get, post, HttpRequest};
 use uuid::Uuid;
-use crate::app_state::AppState;
 
 use crate::enums::app_message::AppMessage;
 use crate::helpers::http::QueryParams;

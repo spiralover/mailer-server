@@ -2,7 +2,6 @@ use actix_multipart::form::MultipartForm;
 use actix_web::web::{block, Data, Query, ServiceConfig};
 use actix_web::{get, post, HttpRequest, HttpResponse};
 
-use crate::app_state::AppState;
 use crate::enums::auth_permission::AuthPermission;
 use crate::enums::entities::Entities;
 use crate::helpers::http::{QueryParams, UploadForm};
@@ -37,18 +36,15 @@ async fn auth_attempts(req: HttpRequest, pool: Data<DBPool>, q: Query<QueryParam
 }
 
 #[post("passport")]
-async fn upload_passport(
-    req: HttpRequest,
-    app: Data<AppState>,
-    form: MultipartForm<UploadForm>,
-    pool: Data<DBPool>,
-) -> HttpResult {
-    req.verify_user_permission(AuthPermission::UserMyProfileUploadPassport)?;
-    let auth_user = req.auth_user();
+async fn upload_passport(req: HttpRequest, form: MultipartForm<UploadForm>) -> HttpResult {
+    let ctx = req.context();
+    let auth_user = ctx.auth_user();
 
     block(move || {
+        ctx.verify_user_permission(AuthPermission::UserMyProfileUploadPassport)?;
+
         let file = FileUploadService.upload(
-            app.into_inner(),
+            ctx.app(),
             form.into_inner().file,
             FileUploadData {
                 uploader_id: auth_user.user_id,
@@ -61,7 +57,7 @@ async fn upload_passport(
         )?;
 
         UserService
-            .change_profile_picture(pool.get_ref(), auth_user, file.file_path)
+            .change_profile_picture(ctx.database(), auth_user, file.file_path)
             .map(|u| u.into_sharable())
     })
     .await

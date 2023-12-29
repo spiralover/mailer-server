@@ -1,4 +1,3 @@
-use crate::app_state::AppState;
 use actix_web::web::{block, Data, Json, Path, Query, ServiceConfig};
 use actix_web::{delete, get, patch, post, put, HttpRequest};
 use uuid::Uuid;
@@ -32,56 +31,54 @@ pub fn application_controller(cfg: &mut ServiceConfig) {
 }
 
 #[get("")]
-async fn index(q: Query<QueryParams>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(AuthPermission::ApplicationList)?;
-    block(move || ApplicationRepository.list(pool.get_ref(), q.into_inner()))
-        .await
-        .respond()
+async fn index(q: Query<QueryParams>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::ApplicationList)?;
+        ApplicationRepository.list(ctx.database(), q.into_inner())
+    })
+    .await
+    .respond()
 }
 
 #[post("")]
-async fn store(
-    form: Json<ApplicationCreateForm>,
-    req: HttpRequest,
-    pool: Data<DBPool>,
-) -> HttpResult {
-    let auth_id = req.auth_id();
-    req.verify_user_permission(AuthPermission::ApplicationKeyGenerate)?;
-    block(move || ApplicationService.create(pool.get_ref(), auth_id, form.into_inner()))
-        .await
-        .respond()
+async fn store(form: Json<ApplicationCreateForm>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::ApplicationKeyGenerate)?;
+        ApplicationService.create(ctx.database(), ctx.auth_id, form.into_inner())
+    })
+    .await
+    .respond()
 }
 
 #[get("{id}")]
-async fn show(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(AuthPermission::ApplicationKeyGenerate)?;
-    block(move || ApplicationRepository.find_by_id(pool.get_ref(), id.to_owned()))
-        .await
-        .respond()
+async fn show(id: Path<Uuid>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::ApplicationKeyGenerate)?;
+        ApplicationRepository.find_by_id(ctx.database(), id.to_owned())
+    })
+    .await
+    .respond()
 }
 
 #[post("{id}/mails")]
-async fn mails(
-    id: Path<Uuid>,
-    req: HttpRequest,
-    app: Data<AppState>,
-    form: Json<MailPayload>,
-) -> HttpResult {
-    req.verify_user_permission(AuthPermission::MailSend)?;
-    let auth_id = req.auth_id();
-
+async fn mails(id: Path<Uuid>, req: HttpRequest, form: Json<MailPayload>) -> HttpResult {
+    let ctx = req.context();
     block(move || {
+        ctx.verify_user_permission(AuthPermission::MailSend)?;
+
         // Verify user has access to this neuron
-        let app_id =
-            ApplicationRepository.find_owned_by_id(&app.database().clone(), *id, auth_id)?;
+        let app_id = ApplicationRepository.find_owned_by_id(ctx.database(), *id, ctx.auth_id())?;
 
         let total_mails = form.mails.len();
         for mail in form.mails.clone() {
             let _result = MailService.push_to_awaiting_queue(
-                app.get_ref(),
+                ctx.app().as_ref(),
                 MailQueueablePayload {
                     application_id: app_id,
-                    created_by: auth_id,
+                    created_by: ctx.auth_id(),
                     subject: mail.subject,
                     message: mail.message,
                     from: mail.from,
@@ -105,40 +102,45 @@ async fn mails(
 }
 
 #[patch("{id}/activate")]
-async fn activate(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(AuthPermission::ApplicationKeyGenerate)?;
-    block(move || ApplicationService.activate(pool.get_ref(), id.to_owned()))
-        .await
-        .respond()
+async fn activate(id: Path<Uuid>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::ApplicationKeyGenerate)?;
+        ApplicationService.activate(ctx.database(), id.to_owned())
+    })
+    .await
+    .respond()
 }
 
 #[patch("{id}/deactivate")]
-async fn deactivate(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(AuthPermission::ApplicationKeyGenerate)?;
-    block(move || ApplicationService.deactivate(pool.get_ref(), id.to_owned()))
-        .await
-        .respond()
+async fn deactivate(id: Path<Uuid>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::ApplicationKeyGenerate)?;
+        ApplicationService.deactivate(ctx.database(), id.to_owned())
+    })
+    .await
+    .respond()
 }
 
 #[put("{id}")]
-async fn update(
-    form: Json<ApplicationUpdateForm>,
-    id: Path<Uuid>,
-    req: HttpRequest,
-    pool: Data<DBPool>,
-) -> HttpResult {
-    req.verify_user_permission(AuthPermission::ApplicationList)?;
-    block(move || ApplicationService.update(pool.get_ref(), id.to_owned(), form.into_inner()))
-        .await
-        .respond()
+async fn update(form: Json<ApplicationUpdateForm>, id: Path<Uuid>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::ApplicationList)?;
+        ApplicationService.update(ctx.database(), id.to_owned(), form.into_inner())
+    })
+    .await
+    .respond()
 }
 
 #[delete("{id}")]
-async fn delete(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(AuthPermission::ApplicationDelete)?;
+async fn delete(id: Path<Uuid>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
     block(move || {
+        ctx.verify_user_permission(AuthPermission::ApplicationDelete)?;
         ApplicationService
-            .delete(pool.get_ref(), id.into_inner())
+            .delete(ctx.database(), id.into_inner())
             .expect("Failed to delete application");
 
         Ok(AppMessage::SuccessMessage("application deleted"))
@@ -157,15 +159,13 @@ async fn keys(mut param: Path<IdPathParam>, req: HttpRequest, pool: Data<DBPool>
 }
 
 #[post("{id}/keys/generate")]
-async fn generate(
-    mut param: Path<IdPathParam>,
-    req: HttpRequest,
-    pool: Data<DBPool>,
-) -> HttpResult {
+async fn generate(mut param: Path<IdPathParam>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
     let id = param.get_uuid()?;
-    let auth_id = req.auth_id();
-    req.verify_user_permission(AuthPermission::ApplicationKeyGenerate)?;
-    block(move || AppKeyService.generate(pool.get_ref(), id, auth_id))
-        .await
-        .respond()
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::ApplicationKeyGenerate)?;
+        AppKeyService.generate(ctx.database(), id, ctx.auth_id())
+    })
+    .await
+    .respond()
 }

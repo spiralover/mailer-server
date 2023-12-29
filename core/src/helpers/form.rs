@@ -1,9 +1,20 @@
 use std::str::FromStr;
 
 use chrono::NaiveDateTime;
+use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::helpers::time::current_timestamp;
+
+#[derive(Deserialize)]
+pub struct IdsVecDto {
+    pub ids: Vec<Uuid>,
+}
+
+#[derive(Deserialize)]
+pub struct IdUuidDto {
+    pub id: Uuid,
+}
 
 #[allow(dead_code)]
 pub fn get_nullable_time(spent_at: Option<String>) -> NaiveDateTime {

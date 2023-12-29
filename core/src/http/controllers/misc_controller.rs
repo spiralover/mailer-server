@@ -1,8 +1,7 @@
 use actix_multipart::form::MultipartForm;
-use actix_web::web::{block, Data, ServiceConfig};
+use actix_web::web::{block, ServiceConfig};
 use actix_web::{post, HttpRequest};
 
-use crate::app_state::AppState;
 use crate::enums::auth_permission::AuthPermission;
 use crate::enums::entities::Entities;
 use crate::helpers::http::UploadForm;
@@ -18,17 +17,15 @@ pub fn misc_controller(cfg: &mut ServiceConfig) {
 }
 
 #[post("temp-file")]
-async fn upload_temp_file(
-    req: HttpRequest,
-    app: Data<AppState>,
-    form: MultipartForm<UploadForm>,
-) -> HttpResult {
-    req.verify_user_permission(AuthPermission::MiscUploadTempFile)?;
-    let auth_user = req.auth_user();
+async fn upload_temp_file(req: HttpRequest, form: MultipartForm<UploadForm>) -> HttpResult {
+    let ctx = req.context();
+    let auth_user = ctx.auth_user();
 
     block(move || {
+        ctx.verify_user_permission(AuthPermission::MiscUploadTempFile)?;
+
         FileUploadService.upload(
-            app.into_inner(),
+            ctx.app(),
             form.into_inner().file,
             FileUploadData {
                 uploader_id: auth_user.user_id,

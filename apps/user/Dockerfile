@@ -1,7 +1,7 @@
 ARG MAILER_IMAGE=rust:1.75-slim-bookworm
 
 # Build
-FROM ${IMAGE} as planner
+FROM ${MAILER_IMAGE} as planner
 RUN cargo install cargo-chef
 
 # Set work directory
@@ -11,7 +11,7 @@ COPY . .
 # Prepare a build plan ("recipe")
 RUN cargo chef prepare --recipe-path recipe.json
 
-FROM ${IMAGE} as build
+FROM ${MAILER_IMAGE} as build
 RUN cargo install cargo-chef
 
 # Install postgres library
@@ -34,7 +34,7 @@ WORKDIR /mailer-server/apps/user
 RUN cargo build --release --bin user
 
 # BUILD
-FROM ${IMAGE} AS runtime
+FROM ${MAILER_IMAGE} AS runtime
 
 # Install dependency (Required by diesel)
 RUN apt-get update && apt-get install curl libpq-dev -y

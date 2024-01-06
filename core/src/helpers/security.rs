@@ -20,7 +20,10 @@ pub fn generate_token(
 ) -> AuthTokenData {
     let token_lifetime_in_minutes: i64 = match lifetime {
         Some(l) => l,
-        None => env::var("AUTH_TOKEN_LIFETIME").unwrap().parse().unwrap(),
+        None => env::var("MAILER_AUTH_TOKEN_LIFETIME")
+            .unwrap()
+            .parse()
+            .unwrap(),
     };
 
     let now = Utc::now();
@@ -40,7 +43,7 @@ pub fn generate_token(
     let token = encode(
         &token_header,
         &claims,
-        &EncodingKey::from_secret(env::var("APP_KEY").unwrap().as_ref()),
+        &EncodingKey::from_secret(env::var("MAILER_APP_KEY").unwrap().as_ref()),
     )
     .unwrap();
 

@@ -63,8 +63,8 @@ impl MailerService {
             message: String::from(""),
             subject: String::from(""),
             from: MailBox {
-                name: env::var("MAIL_FROM_NAME").unwrap(),
-                email: env::var("MAIL_FROM_EMAIL").unwrap(),
+                name: env::var("MAILER_MAIL_FROM_NAME").unwrap(),
+                email: env::var("MAILER_MAIL_FROM_EMAIL").unwrap(),
             },
         }
     }

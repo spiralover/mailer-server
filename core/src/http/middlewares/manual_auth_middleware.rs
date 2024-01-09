@@ -8,10 +8,8 @@ use log::error;
 use uuid::Uuid;
 
 use crate::app_state::AppState;
-use crate::enums::app_message::AppMessage;
-use crate::helpers::auth::{decode_auth_token, make_unauthorized_message};
-use crate::helpers::uuid::UniqueIdentifier;
-use crate::models::user::User;
+use crate::helpers::auth::{decode_auth_token, get_auth_user, make_unauthorized_message};
+use crate::models::user::UserCacheData;
 use crate::repositories::personal_access_token_repository::PersonaAccessTokenRepository;
 use crate::repositories::user_repository::UserRepository;
 use crate::results::http_result::ErroneousOptionResponse;
@@ -33,13 +31,15 @@ impl FromRequest for ManualAuthMiddleware {
                     .map(|h| h.to_str().unwrap().split_at(7).1.to_string())
             });
 
+        let make_message =
+            |msg: &str| ready(Err(ErrorUnauthorized(make_unauthorized_message(msg))));
+
         if token.is_none() {
-            return ready(Err(ErrorUnauthorized(make_unauthorized_message(
-                "You are not logged in, please provide token",
-            ))));
+            return make_message("You are not logged in, please provide token");
         }
 
         let app = req.app_data::<Data<AppState>>().unwrap();
+        let mut redis_service = app.services.redis.clone();
         let pat_prefix = app.auth_pat_prefix.clone();
 
         let raw_token = token.unwrap();
@@ -54,51 +54,66 @@ impl FromRequest for ManualAuthMiddleware {
                 let claims = match decoded {
                     Ok(c) => c.claims,
                     Err(_) => {
-                        return ready(Err(ErrorUnauthorized(make_unauthorized_message(
-                            "Invalid auth token",
-                        ))));
+                        return make_message("Invalid auth token");
                     }
                 };
 
-                let user_id = UniqueIdentifier::from_string(claims.sub);
-                UserRepository.find_by_id(app.database(), user_id.uuid())
-            }
-            true => match PersonaAccessTokenRepository.find_by_token(app.database(), raw_token) {
-                Ok(pat) => {
-                    if !pat.is_usable() {
-                        let message = Box::leak(Box::new(format!(
-                            "personal access token has expired on {:?}",
-                            pat.expired_at
-                        )));
-                        return ready(Err(ErrorUnauthorized(make_unauthorized_message(message))));
-                    }
-
-                    UserRepository.find_by_id(app.database(), pat.user_id)
-                }
-                Err(error) => {
-                    match error {
-                        AppMessage::DatabaseEntityNotFound => {}
-                        _ => error!("pat error: {:?}", error),
-                    }
-
-                    return ready(Err(ErrorUnauthorized(make_unauthorized_message(
-                        "failed to authenticate personal access token",
+                if !claims.is_usable() {
+                    return make_message(Box::leak(Box::new(format!(
+                        "auth token has expired on {}",
+                        claims.exp
                     ))));
+                }
+
+                get_auth_user(app.database(), redis_service, claims)
+            }
+
+            // PERSONAL ACCESS TOKEN
+            true => match redis_service.get(raw_token.clone()) {
+                Ok(data) => Ok(serde_json::from_str::<UserCacheData>(&data).unwrap()),
+                Err(_error) => {
+                    let pat_result = PersonaAccessTokenRepository
+                        .find_by_token(app.database(), raw_token.clone());
+
+                    match pat_result {
+                        Ok(pat) => {
+                            if !pat.is_usable() {
+                                let msg = Box::leak(Box::new(format!(
+                                    "personal access token has expired on {:?}",
+                                    pat.expired_at
+                                )));
+
+                                let _ = redis_service.delete(raw_token);
+
+                                return make_message(msg);
+                            }
+
+                            UserRepository
+                                .find_by_id(app.database(), pat.user_id)
+                                .map(|user| {
+                                    let user = user.into_cache_data();
+                                    let _ = redis_service.set(raw_token, user.clone());
+                                    user
+                                })
+                        }
+                        Err(err) => {
+                            error!("pat error: {:?}", err);
+                            return make_message("failed to authenticate personal access token");
+                        }
+                    }
                 }
             },
         };
 
         if user_lookup.is_error_or_empty() {
-            return ready(Err(ErrorUnauthorized(make_unauthorized_message(
-                "Invalid auth token, user not found",
-            ))));
+            return make_message("Invalid auth token, user not found");
         }
 
         let user = user_lookup.unwrap();
         let user_id = user.user_id;
 
         req.extensions_mut().insert::<Uuid>(user_id);
-        req.extensions_mut().insert::<User>(user);
+        req.extensions_mut().insert::<UserCacheData>(user);
 
         ready(Ok(ManualAuthMiddleware { user_id }))
     }

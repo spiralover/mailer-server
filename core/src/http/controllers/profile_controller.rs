@@ -1,6 +1,6 @@
 use actix_multipart::form::MultipartForm;
 use actix_web::web::{block, Data, Query, ServiceConfig};
-use actix_web::{get, post, HttpRequest, HttpResponse};
+use actix_web::{get, post, HttpRequest};
 
 use crate::enums::auth_permission::AuthPermission;
 use crate::enums::entities::Entities;
@@ -10,8 +10,8 @@ use crate::helpers::string::string;
 use crate::helpers::DBPool;
 use crate::models::file_upload::FileUploadData;
 use crate::repositories::auth_attempt_repository::AuthAttemptRepository;
+use crate::repositories::user_repository::UserRepository;
 use crate::results::http_result::ActixBlockingResultResponder;
-use crate::results::http_result::StructResponse;
 use crate::results::HttpResult;
 use crate::services::file_upload_service::FileUploadService;
 use crate::services::user_service::UserService;
@@ -23,8 +23,15 @@ pub fn profile_controller(cfg: &mut ServiceConfig) {
 }
 
 #[get("")]
-async fn profile(req: HttpRequest) -> HttpResponse {
-    req.auth_user().into_sharable().send_response()
+async fn profile(req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
+    let auth_id = req.auth_id();
+    block(move || {
+        UserRepository
+            .find_by_id(pool.get_ref(), auth_id)
+            .map(|u| u.into_sharable())
+    })
+    .await
+    .respond()
 }
 
 #[get("auth-attempts")]
@@ -38,10 +45,10 @@ async fn auth_attempts(req: HttpRequest, pool: Data<DBPool>, q: Query<QueryParam
 #[post("passport")]
 async fn upload_passport(req: HttpRequest, form: MultipartForm<UploadForm>) -> HttpResult {
     let ctx = req.context();
-    let auth_user = ctx.auth_user();
 
     block(move || {
         ctx.verify_user_permission(AuthPermission::UserMyProfileUploadPassport)?;
+        let auth_user = UserRepository.find_by_id(ctx.database(), ctx.auth_id)?;
 
         let file = FileUploadService.upload(
             ctx.app(),

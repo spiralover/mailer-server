@@ -44,6 +44,19 @@ impl RedisService {
             .lpush::<&str, &str, i32>(&*queue, serde_json::to_string(&data).unwrap().as_str())
     }
 
+    pub fn set<T: Serialize>(&mut self, key: String, value: T) -> redis::RedisResult<String> {
+        self.redis
+            .set::<String, String, String>(key, serde_json::to_string(&value).unwrap())
+    }
+
+    pub fn get(&mut self, key: String) -> redis::RedisResult<String> {
+        self.redis.get::<String, String>(key)
+    }
+
+    pub fn delete(&mut self, key: String) -> redis::RedisResult<String> {
+        self.redis.del::<String, String>(key)
+    }
+
     pub fn publish<T: Serialize>(&mut self, channel: String, data: T) -> RedisResult<i32> {
         self.redis
             .publish::<String, String, i32>(channel, serde_json::to_string(&data).unwrap())

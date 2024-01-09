@@ -10,10 +10,11 @@ use log::info;
 use redis::Client;
 use tera::Tera;
 
-use crate::app_state::{AppRedisQueues, AppState};
+use crate::app_state::{AppRedisQueues, AppServices, AppState};
 use crate::helpers::fs::get_cwd;
 use crate::models::mail::MailBox;
 use crate::models::DBPool;
+use crate::services::redis_service::RedisService;
 
 pub async fn make_app_state() -> AppState {
     let database_pool = establish_database_connection();
@@ -59,6 +60,10 @@ pub async fn make_app_state() -> AppState {
 
         // redis
         redis_queues: get_redis_queues(),
+
+        services: AppServices {
+            redis: RedisService::new(redis),
+        },
     }
 }
 

@@ -144,6 +144,15 @@ impl User {
         }
     }
 
+    pub fn into_cache_data(self) -> UserCacheData {
+        UserCacheData {
+            user_id: self.user_id,
+            username: self.username,
+            email: self.email,
+            roles: vec![],
+        }
+    }
+
     pub fn into_sharable(self) -> UserSharableData {
         UserSharableData {
             user_id: self.user_id,
@@ -159,6 +168,14 @@ impl User {
             updated_at: self.updated_at,
         }
     }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct UserCacheData {
+    pub user_id: Uuid,
+    pub username: String,
+    pub email: String,
+    pub roles: Vec<String>,
 }
 
 #[derive(Clone, PartialEq, Display, Debug, EnumString, EnumVariantNames)]

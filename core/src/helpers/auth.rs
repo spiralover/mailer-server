@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use actix_web::http::StatusCode;
 use actix_web::web::Data;
 use actix_web::HttpRequest;
@@ -10,8 +12,11 @@ use crate::enums::auth_permission::AuthPermission;
 use crate::helpers::request::RequestHelper;
 use crate::helpers::responder::{JsonResponse, JsonResponseEmptyMessage};
 use crate::helpers::DBPool;
+use crate::models::user::UserCacheData;
+use crate::repositories::user_repository::UserRepository;
 use crate::results::{AppResult, HttpResult};
 use crate::services::auth_service::TokenClaims;
+use crate::services::redis_service::RedisService;
 use crate::services::role_service::RoleService;
 
 pub fn has_permission<F>(req: HttpRequest, p: AuthPermission, f: F) -> HttpResult
@@ -94,5 +99,23 @@ pub(crate) fn make_unauthorized_message(msg: &str) -> JsonResponse<JsonResponseE
         status: StatusCode::UNAUTHORIZED.to_string(),
         message: Some(msg.to_string()),
         data: JsonResponseEmptyMessage {},
+    }
+}
+
+pub(crate) fn get_auth_user(
+    pool: &DBPool,
+    mut srv: RedisService,
+    claims: TokenClaims,
+) -> AppResult<UserCacheData> {
+    match srv.get(claims.sub.clone()) {
+        Ok(data) => Ok(serde_json::from_str::<UserCacheData>(&data).unwrap()),
+        Err(_err) => {
+            let user_id = Uuid::from_str(&claims.sub).unwrap();
+            UserRepository.find_by_id(pool, user_id).map(|user| {
+                let user = user.into_cache_data();
+                let _ = srv.set(user_id.to_string(), user.clone());
+                user
+            })
+        }
     }
 }

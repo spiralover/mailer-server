@@ -10,10 +10,12 @@ use log::info;
 use redis::Client;
 use tera::Tera;
 
-use crate::app_state::{AppRedisQueues, AppState};
+use crate::app_state::{AppRedisQueues, AppServices, AppState};
 use crate::helpers::fs::get_cwd;
 use crate::models::mail::MailBox;
 use crate::models::DBPool;
+use crate::services::cache_service::CacheService;
+use crate::services::redis_service::RedisService;
 
 pub async fn make_app_state() -> AppState {
     let database_pool = establish_database_connection();
@@ -23,18 +25,22 @@ pub async fn make_app_state() -> AppState {
     let tera_templating = Tera::new(tpl_dir.as_str()).unwrap();
 
     let redis = establish_redis_connection();
+    let redis_service = RedisService::new(redis.clone());
 
     AppState {
-        app_name: env::var("APP_NAME").unwrap(),
-        app_desc: env::var("APP_DESC").unwrap(),
-        app_key: env::var("APP_KEY").unwrap(),
-        app_url: env::var("APP_URL").unwrap(),
-        app_logo_url: env::var("APP_LOGO_URL").unwrap(),
-        app_help_email: env::var("APP_HELP_EMAIL").unwrap(),
-        app_frontend_url: env::var("FRONTEND_ADDRESS").unwrap(),
+        app_name: env::var("MAILER_APP_NAME").unwrap(),
+        app_desc: env::var("MAILER_APP_DESC").unwrap(),
+        app_key: env::var("MAILER_APP_KEY").unwrap(),
+        app_url: env::var("MAILER_APP_URL").unwrap(),
+        app_logo_url: env::var("MAILER_APP_LOGO_URL").unwrap(),
+        app_help_email: env::var("MAILER_APP_HELP_EMAIL").unwrap(),
+        app_frontend_url: env::var("MAILER_FRONTEND_ADDRESS").unwrap(),
 
-        auth_token_lifetime: env::var("AUTH_TOKEN_LIFETIME").unwrap().parse().unwrap(),
-        auth_pat_prefix: env::var("AUTH_PAT_PREFIX").unwrap(),
+        auth_token_lifetime: env::var("MAILER_AUTH_TOKEN_LIFETIME")
+            .unwrap()
+            .parse()
+            .unwrap(),
+        auth_pat_prefix: env::var("MAILER_AUTH_PAT_PREFIX").unwrap(),
 
         mailer_application_id: env::var("MAILER_APPLICATION_ID").unwrap(),
         mailer_system_user_id: env::var("MAILER_SYSTEM_USER_ID").unwrap(),
@@ -45,30 +51,38 @@ pub async fn make_app_state() -> AppState {
         pulse_count: Arc::new(Mutex::new(0)),
         allowed_origins: get_allowed_origins(),
         mail_from: MailBox {
-            email: env::var("MAIL_FROM_EMAIL").unwrap(),
-            name: env::var("MAIL_FROM_NAME").unwrap(),
+            email: env::var("MAILER_MAIL_FROM_EMAIL").unwrap(),
+            name: env::var("MAILER_MAIL_FROM_NAME").unwrap(),
         },
-        max_retrials: env::var("MAX_RETRIALS").unwrap().parse().unwrap(),
-        max_image_upload_size: env::var("MAX_IMAGE_UPLOAD_SIZE").unwrap().parse().unwrap(),
+        max_retrials: env::var("MAILER_MAX_RETRIALS").unwrap().parse().unwrap(),
+        max_image_upload_size: env::var("MAILER_MAX_IMAGE_UPLOAD_SIZE")
+            .unwrap()
+            .parse()
+            .unwrap(),
 
         // redis
         redis_queues: get_redis_queues(),
+
+        services: AppServices {
+            redis: redis_service.clone(),
+            cache: CacheService::new(redis_service),
+        },
     }
 }
 
 pub fn get_server_host_config() -> (String, u16) {
-    let host: String = env::var("SERVER_HOST").unwrap();
-    let port: u16 = env::var("SERVER_PORT").unwrap().parse().unwrap();
+    let host: String = env::var("MAILER_SERVER_HOST").unwrap();
+    let port: u16 = env::var("MAILER_SERVER_PORT").unwrap().parse().unwrap();
     (host, port)
 }
 
 pub fn establish_redis_connection() -> Client {
-    let redis_url: String = env::var("REDIS_DSN").unwrap();
+    let redis_url: String = env::var("MAILER_REDIS_DSN").unwrap();
     Client::open(redis_url).unwrap()
 }
 
 pub fn establish_database_connection() -> DBPool {
-    let db_url: String = env::var("DATABASE_DSN").unwrap();
+    let db_url: String = env::var("MAILER_DATABASE_DSN").unwrap();
     let manager = ConnectionManager::<PgConnection>::new(db_url);
     r2d2::Pool::builder()
         .build(manager)
@@ -77,21 +91,21 @@ pub fn establish_database_connection() -> DBPool {
 
 pub fn get_redis_queues() -> AppRedisQueues {
     AppRedisQueues {
-        awaiting: env::var("REDIS_QUEUE_AWAITING").unwrap(),
-        processing: env::var("REDIS_QUEUE_PROCESSING").unwrap(),
-        retrying: env::var("REDIS_QUEUE_RETRYING").unwrap(),
-        success: env::var("REDIS_QUEUE_SUCCESS").unwrap(),
-        failure: env::var("REDIS_QUEUE_FAILURE").unwrap(),
-        callback: env::var("REDIS_QUEUE_CALLBACK").unwrap(),
+        awaiting: env::var("MAILER_REDIS_QUEUE_AWAITING").unwrap(),
+        processing: env::var("MAILER_REDIS_QUEUE_PROCESSING").unwrap(),
+        retrying: env::var("MAILER_REDIS_QUEUE_RETRYING").unwrap(),
+        success: env::var("MAILER_REDIS_QUEUE_SUCCESS").unwrap(),
+        failure: env::var("MAILER_REDIS_QUEUE_FAILURE").unwrap(),
+        callback: env::var("MAILER_REDIS_QUEUE_CALLBACK").unwrap(),
     }
 }
 
 pub(crate) fn create_smtp_client() -> SmtpTransport {
-    let host = env::var("MAIL_HOST").unwrap();
-    let port: u16 = env::var("MAIL_PORT").unwrap().parse().unwrap();
-    let username = env::var("MAIL_USERNAME").unwrap();
-    let password = env::var("MAIL_PASSWORD").unwrap();
-    let encryption = env::var("MAIL_ENCRYPTION").unwrap();
+    let host = env::var("MAILER_MAIL_HOST").unwrap();
+    let port: u16 = env::var("MAILER_MAIL_PORT").unwrap().parse().unwrap();
+    let username = env::var("MAILER_MAIL_USERNAME").unwrap();
+    let password = env::var("MAILER_MAIL_PASSWORD").unwrap();
+    let encryption = env::var("MAILER_MAIL_ENCRYPTION").unwrap();
     let credentials = Credentials::new(username.clone(), password);
 
     info!(
@@ -125,7 +139,7 @@ pub(crate) fn create_smtp_client() -> SmtpTransport {
 }
 
 pub fn get_allowed_origins() -> Vec<String> {
-    let url_str = env::var("ALLOWED_ORIGINS").unwrap();
+    let url_str = env::var("MAILER_ALLOWED_ORIGINS").unwrap();
     let origins: Vec<&str> = url_str.split(',').collect();
     origins.iter().map(|o| o.trim().to_string()).collect()
 }
@@ -165,12 +179,12 @@ pub fn make_thread_name(worker_count: Arc<Mutex<usize>>, workers: Vec<String>) -
 }
 
 pub fn get_worker_configs() -> (i8, Vec<String>) {
-    let tasks_per_worker: i8 = env::var("SERVER_TASKS_PER_WORKER")
+    let tasks_per_worker: i8 = env::var("MAILER_SERVER_TASKS_PER_WORKER")
         .unwrap()
         .parse()
         .unwrap();
 
-    let workers: Vec<String> = env::var("SERVER_WORKERS")
+    let workers: Vec<String> = env::var("MAILER_SERVER_WORKERS")
         .unwrap()
         .split(',')
         .map(|s| s.to_string())

@@ -1,16 +1,26 @@
 use actix_web::http::StatusCode;
 use actix_web::HttpResponse;
 use serde::Serialize;
+use std::fmt::{Display, Formatter};
 
 use crate::helpers::db_pagination::PageData;
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
+pub(crate) struct JsonResponseEmptyMessage {}
+
+#[derive(Debug, Serialize)]
 pub struct JsonResponse<T: Serialize> {
-    code: u16,
-    success: bool,
-    status: String,
-    message: Option<String>,
-    data: T,
+    pub(crate) code: u16,
+    pub(crate) success: bool,
+    pub(crate) status: String,
+    pub(crate) message: Option<String>,
+    pub(crate) data: T,
+}
+
+impl<T: Serialize> Display for JsonResponse<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(serde_json::to_string(self).unwrap().as_str())
+    }
 }
 
 #[derive(Serialize)]
@@ -21,9 +31,6 @@ pub struct PaginationResponse<T: Serialize> {
     pub(crate) status: u16,
     pub(crate) data: Vec<T>,
 }
-
-#[derive(Serialize)]
-pub struct JsonMessageResponse {}
 
 pub fn json<T: Serialize>(data: T, status: StatusCode) -> HttpResponse {
     HttpResponse::build(status).json(data)
@@ -77,11 +84,15 @@ pub fn json_error_message(message: &str) -> HttpResponse {
 }
 
 pub fn json_error_message_status(message: &str, status: StatusCode) -> HttpResponse {
-    json_error(JsonMessageResponse {}, status, Some(message.to_string()))
+    json_error(
+        JsonResponseEmptyMessage {},
+        status,
+        Some(message.to_string()),
+    )
 }
 
 pub fn json_success_message(message: &str) -> HttpResponse {
-    json_success(JsonMessageResponse {}, Some(message.to_string()))
+    json_success(JsonResponseEmptyMessage {}, Some(message.to_string()))
 }
 
 #[allow(dead_code)]

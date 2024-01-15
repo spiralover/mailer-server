@@ -1,11 +1,11 @@
+use crate::enums::app_message::AppMessage;
+use crate::helpers::DBPool;
 use crate::models::ui_menu::{CreateForm, UiMenu};
 use crate::models::ui_menu_item::CreateForm as MenuItemCreateForm;
-use crate::helpers::DBPool;
 use crate::repositories::ui_menu_repository::UiMenuRepository;
+use crate::results::AppResult;
 use crate::services::ui_menu_item_service::UiMenuItemService;
 use uuid::Uuid;
-use crate::enums::app_message::AppMessage;
-use crate::results::AppResult;
 
 pub struct UiMenuService;
 
@@ -34,7 +34,7 @@ impl UiMenuService {
             if result.is_err() {
                 let _ = self
                     .delete(pool, menu.ui_menu_id)
-                    .map_err(|e| AppMessage::DatabaseError(e.to_string()))?;
+                    .map_err(|e| AppMessage::DatabaseErrorMessage(e.to_string()))?;
             }
         }
 

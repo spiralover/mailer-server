@@ -1,3 +1,4 @@
+use chrono::Utc;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
@@ -6,11 +7,11 @@ use uuid::Uuid;
 
 use crate::app_state::AppState;
 use crate::enums::app_message::AppMessage;
-use crate::helpers::DBPool;
 use crate::helpers::id_generator::number_generator;
 use crate::helpers::request::ClientInfo;
-use crate::helpers::security::{AuthTokenData, generate_token};
+use crate::helpers::security::{generate_token, AuthTokenData};
 use crate::helpers::string::password_verify;
+use crate::helpers::DBPool;
 use crate::models::auth_attempt::{AuthAttempt, AuthAttemptStatus, CreateDto};
 use crate::models::mail::MailBox;
 use crate::models::user::{
@@ -19,8 +20,8 @@ use crate::models::user::{
 use crate::repositories::auth_attempt_repository::AuthAttemptRepository;
 use crate::repositories::role_repository::RoleRepository;
 use crate::repositories::user_repository::UserRepository;
-use crate::results::AppResult;
 use crate::results::http_result::ErroneousOptionResponse;
+use crate::results::AppResult;
 use crate::services::auth_attempt_service::AuthAttemptService;
 use crate::services::mailer_service::MailerService;
 use crate::services::role_service::RoleService;
@@ -32,8 +33,16 @@ pub struct AuthService;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TokenClaims {
     pub sub: String,
+    // The time this claim is generated (timestamp)
     pub iat: usize,
+    // Expiry time in timestamp
     pub exp: usize,
+}
+
+impl TokenClaims {
+    pub fn is_usable(&self) -> bool {
+        self.exp > Utc::now().timestamp() as usize
+    }
 }
 
 impl AuthService {

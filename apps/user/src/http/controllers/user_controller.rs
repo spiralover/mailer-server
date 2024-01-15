@@ -5,10 +5,10 @@ use log::error;
 use uuid::Uuid;
 use validator::Validate;
 
-use core::app_state::AppState;
 use core::enums::app_message::AppMessage::SuccessMessage;
 use core::enums::auth_permission::AuthPermission;
 use core::enums::entities::Entities;
+use core::helpers::form::IdsVecDto;
 use core::helpers::http::{QueryParams, UploadForm};
 use core::helpers::request::RequestHelper;
 use core::helpers::string::string;
@@ -17,9 +17,7 @@ use core::models::file_upload::FileUploadData;
 use core::models::role::RoleParam;
 use core::models::user::{PasswordForm, User, UserRegisterForm, UserStatus, UserUpdateForm};
 use core::models::user_permission::PermissionsParam;
-use core::models::user_ui_menu_item::{
-    MenuItemCreateDto, UserUiMenuItem, UserUiMenuItemCreateForm,
-};
+use core::models::user_ui_menu_item::{MenuItemCreateDto, UserUiMenuItem};
 use core::repositories::auth_attempt_repository::AuthAttemptRepository;
 use core::repositories::role_repository::RoleRepository;
 use core::repositories::user_permission_repository::UserPermissionRepository;
@@ -62,11 +60,12 @@ pub fn user_controller(cfg: &mut ServiceConfig) {
 }
 
 #[get("")]
-async fn index(q: Query<QueryParams>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(AuthPermission::UserList)?;
+async fn index(q: Query<QueryParams>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
     block(move || {
+        ctx.verify_user_permission(AuthPermission::UserList)?;
         UserRepository
-            .list(pool.get_ref(), q.0)
+            .list(ctx.database(), q.0)
             .map(|mut paginated| {
                 let users: Vec<User> = paginated
                     .records
@@ -87,19 +86,15 @@ async fn index(q: Query<QueryParams>, req: HttpRequest, pool: Data<DBPool>) -> H
 }
 
 #[post("")]
-async fn store(form: Json<UserRegisterForm>, req: HttpRequest, app: Data<AppState>) -> HttpResult {
+async fn store(form: Json<UserRegisterForm>, req: HttpRequest) -> HttpResult {
     form.validate()?;
-    req.verify_user_permission(AuthPermission::UserCreate)?;
+    let ctx = req.context();
 
     block(move || {
-        let default_role_id = RoleRepository.get_default_role_id(app.database());
+        ctx.verify_user_permission(AuthPermission::UserCreate)?;
+        let default_role_id = RoleRepository.get_default_role_id(ctx.database());
         UserService
-            .create(
-                app.into_inner(),
-                default_role_id,
-                form.0,
-                Some(UserStatus::Active),
-            )
+            .create(ctx.app(), default_role_id, form.0, Some(UserStatus::Active))
             .map(|u| u.into_sharable())
     })
     .await
@@ -107,35 +102,35 @@ async fn store(form: Json<UserRegisterForm>, req: HttpRequest, app: Data<AppStat
 }
 
 #[get("{id}")]
-async fn show(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(AuthPermission::UserRead)?;
-    block(move || UserService.get_profile(pool.get_ref(), *id))
-        .await
-        .respond()
+async fn show(id: Path<Uuid>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::UserRead)?;
+        UserService.get_profile(ctx.database(), *id)
+    })
+    .await
+    .respond()
 }
 
 #[put("{id}")]
-async fn update(
-    form: Json<UserUpdateForm>,
-    id: Path<Uuid>,
-    req: HttpRequest,
-    pool: Data<DBPool>,
-) -> HttpResult {
-    req.verify_user_permission(AuthPermission::UserUpdate)?;
+async fn update(form: Json<UserUpdateForm>, id: Path<Uuid>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
     block(move || {
-        UserService.update(pool.get_ref(), *id, form.0)?;
-        UserService.get_profile(pool.get_ref(), *id)
+        ctx.verify_user_permission(AuthPermission::UserUpdate)?;
+        UserService.update(ctx.database(), *id, form.0)?;
+        UserService.get_profile(ctx.database(), *id)
     })
     .await
     .respond()
 }
 
 #[patch("{id}/activate")]
-async fn activate(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(AuthPermission::UserActivate)?;
+async fn activate(id: Path<Uuid>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
     block(move || {
+        ctx.verify_user_permission(AuthPermission::UserActivate)?;
         UserService
-            .activate(pool.get_ref(), *id)
+            .activate(ctx.database(), *id)
             .map(|u| u.into_sharable())
     })
     .await
@@ -143,11 +138,12 @@ async fn activate(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpR
 }
 
 #[patch("{id}/deactivate")]
-async fn deactivate(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(AuthPermission::UserDeactivate)?;
+async fn deactivate(id: Path<Uuid>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
     block(move || {
+        ctx.verify_user_permission(AuthPermission::UserDeactivate)?;
         UserService
-            .deactivate(pool.get_ref(), *id)
+            .deactivate(ctx.database(), *id)
             .map(|u| u.into_sharable())
     })
     .await
@@ -155,20 +151,14 @@ async fn deactivate(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> Htt
 }
 
 #[patch("{id}/change-password")]
-async fn change_password(
-    id: Path<Uuid>,
-    req: HttpRequest,
-    pool: Data<DBPool>,
-    form: Json<PasswordForm>,
-) -> HttpResult {
-    let form = form.0;
+async fn change_password(id: Path<Uuid>, req: HttpRequest, form: Json<PasswordForm>) -> HttpResult {
     form.validate()?;
-
-    req.verify_user_permission(AuthPermission::UserChangePassword)?;
+    let ctx = req.context();
 
     block(move || {
+        ctx.verify_user_permission(AuthPermission::UserChangePassword)?;
         UserService
-            .change_password(pool.get_ref(), *id, form.password)
+            .change_password(ctx.database(), *id, form.0.password)
             .map(|u| u.into_sharable())
     })
     .await
@@ -176,67 +166,63 @@ async fn change_password(
 }
 
 #[get("{id}/auth-attempts")]
-async fn auth_attempts(
-    id: Path<Uuid>,
-    q: Query<QueryParams>,
-    req: HttpRequest,
-    pool: Data<DBPool>,
-) -> HttpResult {
-    req.verify_user_permission(AuthPermission::UserAuthAttemptList)?;
+async fn auth_attempts(id: Path<Uuid>, q: Query<QueryParams>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
     block(move || {
-        let email = UserRepository.fetch_email(pool.get_ref(), *id)?;
-        AuthAttemptRepository.list_by_email(pool.get_ref(), email, q.0)
+        ctx.verify_user_permission(AuthPermission::UserAuthAttemptList)?;
+        let email = UserRepository.fetch_email(ctx.database(), *id)?;
+        AuthAttemptRepository.list_by_email(ctx.database(), email, q.0)
     })
     .await
     .respond()
 }
 
 #[get("{id}/roles")]
-async fn roles(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(AuthPermission::UserRoleList)?;
-    block(move || UserRoleRepository.list_paginated_by_user_id(pool.get_ref(), *id))
-        .await
-        .respond()
+async fn roles(id: Path<Uuid>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::UserRoleList)?;
+        UserRoleRepository.list_paginated_by_user_id(ctx.database(), *id)
+    })
+    .await
+    .respond()
 }
 
 #[post("{id}/roles")]
-async fn assign_role(
-    id: Path<Uuid>,
-    form: Json<RoleParam>,
-    req: HttpRequest,
-    pool: Data<DBPool>,
-) -> HttpResult {
-    req.verify_user_permission(AuthPermission::UserRoleAssign)?;
-
-    let auth_id = req.auth_id();
+async fn assign_role(id: Path<Uuid>, form: Json<RoleParam>, req: HttpRequest) -> HttpResult {
     let role_id = form.0.role_id;
+    let ctx = req.context();
 
-    block(move || RoleService.assign_role_to_user(pool.get_ref(), auth_id, role_id, *id))
-        .await
-        .respond()
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::UserRoleAssign)?;
+        RoleService.assign_role_to_user(ctx.database(), ctx.auth_id(), role_id, *id)
+    })
+    .await
+    .respond()
 }
 
 #[get("{id}/assignable-roles")]
-async fn assignable_roles(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(AuthPermission::UserRoleList)?;
-    block(move || UserRoleRepository.list_assignable(pool.get_ref(), *id))
-        .await
-        .respond()
+async fn assignable_roles(id: Path<Uuid>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::UserRoleList)?;
+        UserRoleRepository.list_assignable(ctx.database(), *id)
+    })
+    .await
+    .respond()
 }
 
 #[delete("{id}/roles/{rid}")]
-async fn un_assign_role(
-    path: Path<(Uuid, Uuid)>,
-    req: HttpRequest,
-    pool: Data<DBPool>,
-) -> HttpResult {
-    req.verify_user_permission(AuthPermission::UserRoleUnAssign)?;
-
+async fn un_assign_role(path: Path<(Uuid, Uuid)>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
     let (_user_id, user_role_id) = path.into_inner();
 
-    block(move || RoleService.un_assign_user_role(pool.get_ref(), user_role_id))
-        .await
-        .respond()
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::UserRoleUnAssign)?;
+        RoleService.un_assign_user_role(ctx.database(), user_role_id)
+    })
+    .await
+    .respond()
 }
 
 #[get("{id}/individual-permissions")]
@@ -244,12 +230,14 @@ async fn individual_permissions(
     id: Path<Uuid>,
     q: Query<QueryParams>,
     req: HttpRequest,
-    pool: Data<DBPool>,
 ) -> HttpResult {
-    req.verify_user_permission(AuthPermission::UserPermissionList)?;
-    block(move || UserPermissionRepository.list_paginated_by_user_id(pool.get_ref(), *id, q.0))
-        .await
-        .respond()
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::UserPermissionList)?;
+        UserPermissionRepository.list_paginated_by_user_id(ctx.database(), *id, q.0)
+    })
+    .await
+    .respond()
 }
 
 #[get("{id}/assignable-permissions")]
@@ -257,12 +245,14 @@ async fn assignable_permissions(
     id: Path<Uuid>,
     req: HttpRequest,
     q: Query<QueryParams>,
-    pool: Data<DBPool>,
 ) -> HttpResult {
-    req.verify_user_permission(AuthPermission::UserPermissionList)?;
-    block(move || UserPermissionRepository.list_assignable(pool.get_ref(), *id, q.0))
-        .await
-        .respond()
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::UserPermissionList)?;
+        UserPermissionRepository.list_assignable(ctx.database(), *id, q.0)
+    })
+    .await
+    .respond()
 }
 
 #[post("{id}/permissions")]
@@ -270,17 +260,17 @@ async fn add_permission(
     user_id: Path<Uuid>,
     form: Json<PermissionsParam>,
     req: HttpRequest,
-    pool: Data<DBPool>,
 ) -> HttpResult {
-    req.verify_user_permission(AuthPermission::UserPermissionCreate)?;
-    let auth_id = req.auth_id();
+    let ctx = req.context();
 
     block(move || {
+        ctx.verify_user_permission(AuthPermission::UserPermissionCreate)?;
+
         let mut permissions = vec![];
         let ids = form.0.ids;
         for id in ids {
             let perm_result =
-                RoleService.user_permission_add(pool.get_ref(), auth_id, *user_id, id);
+                RoleService.user_permission_add(ctx.database(), ctx.auth_id(), *user_id, id);
 
             if let Ok(perm) = perm_result {
                 permissions.push(perm);
@@ -294,49 +284,47 @@ async fn add_permission(
 }
 
 #[delete("{id}/permissions/{pid}")]
-async fn remove_permission(
-    path: Path<(Uuid, Uuid)>,
-    req: HttpRequest,
-    pool: Data<DBPool>,
-) -> HttpResult {
-    req.verify_user_permission(AuthPermission::UserPermissionDelete)?;
-    block(move || RoleService.user_permission_remove(pool.get_ref(), path.into_inner().1))
-        .await
-        .respond()
+async fn remove_permission(path: Path<(Uuid, Uuid)>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::UserPermissionDelete)?;
+        RoleService.user_permission_remove(ctx.database(), path.1)
+    })
+    .await
+    .respond()
 }
 
 #[get("{id}/menus")]
-async fn menus(
-    id: Path<Uuid>,
-    req: HttpRequest,
-    pool: Data<DBPool>,
-    q: Query<QueryParams>,
-) -> HttpResult {
-    req.verify_user_permission(AuthPermission::UserUiMenuItemList)?;
-    block(move || UserUiMenuItemRepository.list_menu_by_user_id(pool.get_ref(), *id, q.0))
-        .await
-        .respond()
+async fn menus(id: Path<Uuid>, req: HttpRequest, q: Query<QueryParams>) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::UserUiMenuItemList)?;
+        UserUiMenuItemRepository.list_menu_by_user_id(ctx.database(), *id, q.0)
+    })
+    .await
+    .respond()
 }
 
 #[get("{id}/menu-items")]
-async fn menu_items(
-    id: Path<Uuid>,
-    req: HttpRequest,
-    pool: Data<DBPool>,
-    q: Query<QueryParams>,
-) -> HttpResult {
-    req.verify_user_permission(AuthPermission::UserUiMenuItemList)?;
-    block(move || UserUiMenuItemRepository.list_menu_item_by_user_id(pool.get_ref(), *id, q.0))
-        .await
-        .respond()
+async fn menu_items(id: Path<Uuid>, req: HttpRequest, q: Query<QueryParams>) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::UserUiMenuItemList)?;
+        UserUiMenuItemRepository.list_menu_item_by_user_id(ctx.database(), *id, q.0)
+    })
+    .await
+    .respond()
 }
 
 #[get("{id}/assignable-menu-items")]
-async fn assignable_menu_items(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(AuthPermission::UserUiMenuItemList)?;
-    block(move || UserUiMenuItemRepository.list_assignable(pool.get_ref(), *id))
-        .await
-        .respond()
+async fn assignable_menu_items(id: Path<Uuid>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::UserUiMenuItemList)?;
+        UserUiMenuItemRepository.list_assignable(ctx.database(), *id)
+    })
+    .await
+    .respond()
 }
 
 #[post("{id}/menu-items")]
@@ -344,17 +332,17 @@ async fn add_menu_item(
     user_id: Path<Uuid>,
     req: HttpRequest,
     pool: Data<DBPool>,
-    form: Json<UserUiMenuItemCreateForm>,
+    form: Json<IdsVecDto>,
 ) -> HttpResult {
-    req.verify_user_permission(AuthPermission::UserUiMenuItemList)?;
-    let auth_id = req.auth_id();
-
+    let ctx = req.context();
     block(move || {
+        ctx.verify_user_permission(AuthPermission::UserUiMenuItemList)?;
+
         let mut items: Vec<UserUiMenuItem> = vec![];
         for id in &form.ids {
             let res = UserUiMenuItemService.create(
                 pool.get_ref(),
-                auth_id,
+                ctx.auth_id(),
                 MenuItemCreateDto {
                     user_id: user_id.to_owned(),
                     menu_item_id: id.to_owned(),
@@ -375,16 +363,13 @@ async fn add_menu_item(
 }
 
 #[delete("{id}/menu-items/{mid}")]
-async fn remove_menu_item(
-    path: Path<(Uuid, Uuid)>,
-    req: HttpRequest,
-    pool: Data<DBPool>,
-) -> HttpResult {
-    req.verify_user_permission(AuthPermission::UserUiMenuItemDelete)?;
+async fn remove_menu_item(path: Path<(Uuid, Uuid)>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
     block(move || {
+        ctx.verify_user_permission(AuthPermission::UserUiMenuItemDelete)?;
         let ids = path.into_inner();
         UserUiMenuItemService
-            .delete_by_item_id(pool.get_ref(), ids.0, ids.1)
+            .delete_by_item_id(ctx.database(), ids.0, ids.1)
             .map(|_| SuccessMessage("removed"))
     })
     .await
@@ -396,20 +381,17 @@ async fn upload_passport(
     req: HttpRequest,
     id: Path<Uuid>,
     form: MultipartForm<UploadForm>,
-    app: Data<AppState>,
 ) -> HttpResult {
-    req.verify_user_permission(AuthPermission::UserUploadPassport)?;
-    let auth_id = req.auth_id();
-
+    let ctx = req.context();
     block(move || {
-        let pool = app.database().clone();
-        let user = UserRepository.find_by_id(&pool, *id)?;
+        ctx.verify_user_permission(AuthPermission::UserUploadPassport)?;
+        let user = UserRepository.find_by_id(ctx.database(), *id)?;
 
         let file = FileUploadService.upload(
-            app.clone().into_inner(),
+            ctx.app(),
             form.0.file,
             FileUploadData {
-                uploader_id: auth_id,
+                uploader_id: ctx.auth_id(),
                 owner_id: *id,
                 owner_type: Entities::User,
                 description: Some(string("profile picture")),
@@ -419,7 +401,7 @@ async fn upload_passport(
         )?;
 
         UserService
-            .change_profile_picture(&pool, user, file.file_path)
+            .change_profile_picture(ctx.database(), user, file.file_path)
             .map(|u| u.into_sharable())
     })
     .await

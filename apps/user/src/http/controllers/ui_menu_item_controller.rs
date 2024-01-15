@@ -1,11 +1,10 @@
-use actix_web::web::{block, Data, Json, Path, Query, ServiceConfig};
+use actix_web::web::{block, Json, Path, Query, ServiceConfig};
 use actix_web::{delete, get, post, put, HttpRequest};
 use uuid::Uuid;
 
 use core::enums::auth_permission::AuthPermission;
 use core::helpers::http::QueryParams;
 use core::helpers::request::RequestHelper;
-use core::helpers::DBPool;
 use core::models::ui_menu_item::CreateForm;
 use core::repositories::ui_menu_item_repository::UiMenuItemRepository;
 use core::results::http_result::ActixBlockingResultResponder;
@@ -21,47 +20,56 @@ pub fn ui_menu_item_controller(cfg: &mut ServiceConfig) {
 }
 
 #[get("")]
-async fn index(q: Query<QueryParams>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(AuthPermission::UiMenuItemList)?;
-    block(move || UiMenuItemRepository.list_paginated(pool.get_ref(), q.0))
-        .await
-        .respond()
+async fn index(q: Query<QueryParams>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::UiMenuItemList)?;
+        UiMenuItemRepository.list_paginated(ctx.database(), q.0)
+    })
+    .await
+    .respond()
 }
 
 #[post("")]
-async fn store(form: Json<CreateForm>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(AuthPermission::UiMenuItemCreate)?;
-    let auth_id = req.auth_id();
-    block(move || UiMenuItemService.create(pool.get_ref(), auth_id, form.0))
-        .await
-        .respond()
+async fn store(form: Json<CreateForm>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::UiMenuItemCreate)?;
+        UiMenuItemService.create(ctx.database(), ctx.auth_id(), form.0)
+    })
+    .await
+    .respond()
 }
 
 #[put("{id}")]
-async fn update(
-    id: Path<Uuid>,
-    form: Json<CreateForm>,
-    req: HttpRequest,
-    pool: Data<DBPool>,
-) -> HttpResult {
-    req.verify_user_permission(AuthPermission::UiMenuItemUpdate)?;
-    block(move || UiMenuItemService.update(pool.get_ref(), *id, form.0))
-        .await
-        .respond()
+async fn update(id: Path<Uuid>, form: Json<CreateForm>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::UiMenuItemUpdate)?;
+        UiMenuItemService.update(ctx.database(), *id, form.0)
+    })
+    .await
+    .respond()
 }
 
 #[get("{id}")]
-async fn show(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(AuthPermission::UiMenuItemRead)?;
-    block(move || UiMenuItemRepository.find_by_id(pool.get_ref(), *id))
-        .await
-        .respond()
+async fn show(id: Path<Uuid>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::UiMenuItemRead)?;
+        UiMenuItemRepository.find_by_id(ctx.database(), *id)
+    })
+    .await
+    .respond()
 }
 
 #[delete("{id}")]
-async fn delete(id: Path<Uuid>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(AuthPermission::UiMenuItemDelete)?;
-    block(move || UiMenuItemService.delete(pool.get_ref(), *id))
-        .await
-        .respond()
+async fn delete(id: Path<Uuid>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::UiMenuItemDelete)?;
+        UiMenuItemService.delete(ctx.database(), *id)
+    })
+    .await
+    .respond()
 }

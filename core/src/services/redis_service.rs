@@ -1,7 +1,7 @@
 use crate::results::redis_result::ToLocalRedisResult;
 use crate::results::RedisResult;
 use log::{debug, error};
-use redis::{Client, Commands};
+use redis::{Client, Commands, FromRedisValue};
 use serde::Serialize;
 
 #[derive(Clone)]
@@ -16,7 +16,8 @@ impl RedisService {
         RedisService { redis }
     }
 
-    pub fn push_to_queue<T: Serialize + Clone>(
+    /// Publish and queue
+    pub fn paq<T: Serialize + Clone>(
         &mut self,
         queue: SubscribableQueue,
         data: T,
@@ -42,6 +43,19 @@ impl RedisService {
     pub fn queue<T: Serialize>(&mut self, queue: String, data: T) -> redis::RedisResult<i32> {
         self.redis
             .lpush::<&str, &str, i32>(&*queue, serde_json::to_string(&data).unwrap().as_str())
+    }
+
+    pub fn set<T: Serialize>(&mut self, key: String, value: T) -> redis::RedisResult<String> {
+        self.redis
+            .set::<String, String, String>(key, serde_json::to_string(&value).unwrap())
+    }
+
+    pub fn get<T: FromRedisValue>(&mut self, key: String) -> redis::RedisResult<T> {
+        self.redis.get::<String, T>(key)
+    }
+
+    pub fn delete(&mut self, key: String) -> redis::RedisResult<String> {
+        self.redis.del::<String, String>(key)
     }
 
     pub fn publish<T: Serialize>(&mut self, channel: String, data: T) -> RedisResult<i32> {

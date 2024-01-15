@@ -12,10 +12,13 @@ use crate::enums::app_message::AppMessage::WarningMessage;
 use crate::helpers::db::DatabaseConnectionHelper;
 use crate::helpers::id_generator::number_generator;
 use crate::helpers::string::{password_hash, string};
-use crate::models::mail::MailBox;
 use crate::helpers::time::current_timestamp;
 use crate::helpers::DBPool;
-use crate::models::user::{FullName, UserUpdateForm, User, UserRegisterForm, UserSharableData, UserStatus, UsernameAvailability};
+use crate::models::mail::MailBox;
+use crate::models::user::{
+    FullName, User, UserRegisterForm, UserSharableData, UserStatus, UserUpdateForm,
+    UsernameAvailability,
+};
 use crate::repositories::user_repository::UserRepository;
 use crate::results::app_result::FormatAppResult;
 use crate::results::AppResult;
@@ -80,7 +83,7 @@ impl UserService {
                 is_available: true,
                 message: string("username is available"),
             }),
-            Err(e) => Err(AppMessage::DatabaseError(e.to_string())),
+            Err(e) => Err(AppMessage::DatabaseErrorMessage(e.to_string())),
         }
     }
 
@@ -204,7 +207,7 @@ impl UserService {
     ) {
         let link = format!(
             "{}/email-verification?token={}",
-            env::var("FRONTEND_ADDRESS").unwrap(),
+            env::var("MAILER_FRONTEND_ADDRESS").unwrap(),
             token
         );
 

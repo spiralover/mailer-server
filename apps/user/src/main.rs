@@ -23,7 +23,7 @@ async fn main() -> std::io::Result<()> {
     env_logger::init_from_env(Env::default().default_filter_or("info"));
 
     let (host, port) = get_server_host_config();
-    let workers: usize = env::var("SERVER_WORKERS").unwrap().parse().unwrap();
+    let workers: usize = env::var("MAILER_SERVER_WORKERS").unwrap().parse().unwrap();
 
     info!(
         "starting server at http://localhost:{} with {} workers",
@@ -43,9 +43,9 @@ async fn main() -> std::io::Result<()> {
             .wrap(setup_cors(app_state.allowed_origins.clone()))
             .default_service(actix_default_service())
     })
-        .shutdown_timeout(1)
-        .bind((host, port))?
-        .workers(workers)
-        .run()
-        .await
+    .shutdown_timeout(1)
+    .bind((host, port))?
+    .workers(workers)
+    .run()
+    .await
 }

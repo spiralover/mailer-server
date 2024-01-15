@@ -1,11 +1,10 @@
-use actix_web::web::{block, Data, Json, Path, Query, ServiceConfig};
-use actix_web::{delete, get, patch, post, put, HttpRequest};
+use actix_web::{delete, get, HttpRequest, patch, post, put};
+use actix_web::web::{block, Json, Path, Query, ServiceConfig};
 use uuid::Uuid;
 
 use core::enums::auth_permission::AuthPermission;
 use core::helpers::http::QueryParams;
 use core::helpers::request::RequestHelper;
-use core::helpers::DBPool;
 use core::models::role::RoleCreateForm;
 use core::models::user_permission::PermissionsParam;
 use core::repositories::role_permission_repository::RolePermissionRepository;
@@ -32,97 +31,102 @@ pub fn role_controller(cfg: &mut ServiceConfig) {
 }
 
 #[get("")]
-async fn index(q: Query<QueryParams>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(AuthPermission::RoleList)?;
-    block(move || RoleRepository.list(pool.get_ref(), q.into_inner()))
-        .await
-        .respond()
+async fn index(q: Query<QueryParams>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::RoleList)?;
+        RoleRepository.list(ctx.database(), q.into_inner())
+    })
+    .await
+    .respond()
 }
 
 #[post("")]
-async fn store(req: HttpRequest, pool: Data<DBPool>, form: Json<RoleCreateForm>) -> HttpResult {
-    let auth_id = req.auth_id();
-    req.verify_user_permission(AuthPermission::RoleCreate)?;
-    block(move || RoleService.create(pool.get_ref(), auth_id, form.into_inner()))
-        .await
-        .respond()
+async fn store(req: HttpRequest, form: Json<RoleCreateForm>) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::RoleCreate)?;
+        RoleService.create(ctx.database(), ctx.auth_id(), form.into_inner())
+    })
+    .await
+    .respond()
 }
 
 #[get("{id}")]
-async fn show(req: HttpRequest, pool: Data<DBPool>, id: Path<Uuid>) -> HttpResult {
-    req.verify_user_permission(AuthPermission::RoleRead)?;
-    block(move || RoleRepository.find_by_id(pool.get_ref(), *id))
-        .await
-        .respond()
+async fn show(req: HttpRequest, id: Path<Uuid>) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::RoleRead)?;
+        RoleRepository.find_by_id(ctx.database(), *id)
+    })
+    .await
+    .respond()
 }
 
 #[put("{id}")]
-async fn update(
-    req: HttpRequest,
-    pool: Data<DBPool>,
-    id: Path<Uuid>,
-    form: Json<RoleCreateForm>,
-) -> HttpResult {
-    req.verify_user_permission(AuthPermission::RoleUpdate)?;
-    block(move || RoleService.update(pool.get_ref(), *id, form.into_inner()))
-        .await
-        .respond()
+async fn update(req: HttpRequest, id: Path<Uuid>, form: Json<RoleCreateForm>) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::RoleUpdate)?;
+        RoleService.update(ctx.database(), *id, form.into_inner())
+    })
+    .await
+    .respond()
 }
 
 #[get("{id}/users")]
-async fn users(
-    req: HttpRequest,
-    pool: Data<DBPool>,
-    id: Path<Uuid>,
-    q: Query<QueryParams>,
-) -> HttpResult {
-    req.verify_user_permission(AuthPermission::RoleUserList)?;
-    block(move || UserRepository.list_by_role(pool.get_ref(), id.into_inner(), q.into_inner()))
-        .await
-        .respond()
+async fn users(req: HttpRequest, id: Path<Uuid>, q: Query<QueryParams>) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::RoleUserList)?;
+        UserRepository.list_by_role(ctx.database(), id.into_inner(), q.into_inner())
+    })
+    .await
+    .respond()
 }
 
 #[patch("{id}/activate")]
-async fn activate(req: HttpRequest, pool: Data<DBPool>, id: Path<Uuid>) -> HttpResult {
-    req.verify_user_permission(AuthPermission::RoleActivate)?;
-    block(move || RoleService.activate(pool.get_ref(), *id))
-        .await
-        .respond()
+async fn activate(req: HttpRequest, id: Path<Uuid>) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::RoleActivate)?;
+        RoleService.activate(ctx.database(), *id)
+    })
+    .await
+    .respond()
 }
 
 #[patch("{id}/deactivate")]
-async fn deactivate(req: HttpRequest, pool: Data<DBPool>, id: Path<Uuid>) -> HttpResult {
-    req.verify_user_permission(AuthPermission::RoleDeactivate)?;
-    block(move || RoleService.deactivate(pool.get_ref(), *id))
-        .await
-        .respond()
+async fn deactivate(req: HttpRequest, id: Path<Uuid>) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::RoleDeactivate)?;
+        RoleService.deactivate(ctx.database(), *id)
+    })
+    .await
+    .respond()
 }
 
 #[get("{id}/permissions")]
-async fn permissions(
-    id: Path<Uuid>,
-    q: Query<QueryParams>,
-    req: HttpRequest,
-    pool: Data<DBPool>,
-) -> HttpResult {
-    req.verify_user_permission(AuthPermission::RoleList)?;
+async fn permissions(id: Path<Uuid>, q: Query<QueryParams>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
     block(move || {
-        RolePermissionRepository.list_paginated_by_role_id(pool.get_ref(), *id, q.into_inner())
+        ctx.verify_user_permission(AuthPermission::RoleList)?;
+        RolePermissionRepository.list_paginated_by_role_id(ctx.database(), *id, q.into_inner())
     })
     .await
     .respond()
 }
 
 #[get("{id}/assignable-permissions")]
-async fn assignable_permissions(
-    id: Path<Uuid>,
-    req: HttpRequest,
-    pool: Data<DBPool>,
-) -> HttpResult {
-    req.verify_user_permission(AuthPermission::RoleList)?;
-    block(move || RoleRepository.list_assignable_permissions(pool.get_ref(), *id))
-        .await
-        .respond()
+async fn assignable_permissions(id: Path<Uuid>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::RoleList)?;
+        RoleRepository.list_assignable_permissions(ctx.database(), *id)
+    })
+    .await
+    .respond()
 }
 
 #[post("{id}/permissions")]
@@ -130,15 +134,16 @@ async fn add_permissions(
     user_id: Path<Uuid>,
     form: Json<PermissionsParam>,
     req: HttpRequest,
-    pool: Data<DBPool>,
 ) -> HttpResult {
-    let auth_id = req.auth_id();
-    req.verify_user_permission(AuthPermission::RolePermissionCreate)?;
+    let ctx = req.context();
     block(move || {
+        ctx.verify_user_permission(AuthPermission::RolePermissionCreate)?;
+
         let mut perms = vec![];
         let ids = form.into_inner().ids;
         for id in ids {
-            let perm_result = RoleService.add_permission(pool.get_ref(), auth_id, *user_id, id);
+            let perm_result =
+                RoleService.add_permission(ctx.database(), ctx.auth_id(), *user_id, id);
 
             if let Ok(perm) = perm_result {
                 perms.push(perm);
@@ -152,21 +157,23 @@ async fn add_permissions(
 }
 
 #[delete("{id}/permissions/{pid}")]
-async fn permission_remove(
-    ids: Path<(Uuid, Uuid)>,
-    req: HttpRequest,
-    pool: Data<DBPool>,
-) -> HttpResult {
-    req.verify_user_permission(AuthPermission::RoleList)?;
-    block(move || RolePermissionService.remove(pool.get_ref(), ids.1))
-        .await
-        .respond()
+async fn permission_remove(ids: Path<(Uuid, Uuid)>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::RoleList)?;
+        RolePermissionService.remove(ctx.database(), ids.1)
+    })
+    .await
+    .respond()
 }
 
 #[get("find-by-name/{name}")]
-async fn role_find_by_name(name: Path<String>, req: HttpRequest, pool: Data<DBPool>) -> HttpResult {
-    req.verify_user_permission(AuthPermission::RoleList)?;
-    block(move || RoleRepository.find_by_name(pool.get_ref(), name.into_inner()))
-        .await
-        .respond()
+async fn role_find_by_name(name: Path<String>, req: HttpRequest) -> HttpResult {
+    let ctx = req.context();
+    block(move || {
+        ctx.verify_user_permission(AuthPermission::RoleList)?;
+        RoleRepository.find_by_name(ctx.database(), name.into_inner())
+    })
+    .await
+    .respond()
 }

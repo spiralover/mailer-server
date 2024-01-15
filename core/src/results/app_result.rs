@@ -20,7 +20,7 @@ impl<T> FormatAppResult<T> for QueryResult<T> {
         match self {
             Ok(value) => Ok(value),
             Err(Error::NotFound) => Err(AppMessage::DatabaseEntityNotFound),
-            Err(e) => Err(AppMessage::DatabaseError(e.to_string())),
+            Err(e) => Err(AppMessage::DatabaseErrorMessage(e.to_string())),
         }
     }
 }

@@ -20,7 +20,7 @@ impl<'a, T> OptionalResult<'a, T> for QueryResult<T> {
         match self {
             Ok(value) => Ok(Some(value)),
             Err(Error::NotFound) => Ok(None),
-            Err(e) => Err(AppMessage::DatabaseError(e.to_string())),
+            Err(e) => Err(AppMessage::DatabaseErrorMessage(e.to_string())),
         }
     }
 
@@ -28,7 +28,7 @@ impl<'a, T> OptionalResult<'a, T> for QueryResult<T> {
         match self {
             Ok(value) => Ok(value),
             Err(Error::NotFound) => Err(EntityNotFound(entity.to_string())),
-            Err(e) => Err(AppMessage::DatabaseError(e.to_string())),
+            Err(e) => Err(AppMessage::DatabaseErrorMessage(e.to_string())),
         }
     }
 
@@ -36,7 +36,7 @@ impl<'a, T> OptionalResult<'a, T> for QueryResult<T> {
         match self {
             Ok(_) => Ok(true),
             Err(Error::NotFound) => Ok(false),
-            Err(e) => Err(AppMessage::DatabaseError(e.to_string())),
+            Err(e) => Err(AppMessage::DatabaseErrorMessage(e.to_string())),
         }
     }
 }

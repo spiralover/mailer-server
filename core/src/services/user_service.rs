@@ -83,7 +83,7 @@ impl UserService {
                 is_available: true,
                 message: string("username is available"),
             }),
-            Err(e) => Err(AppMessage::DatabaseError(e.to_string())),
+            Err(e) => Err(AppMessage::DatabaseErrorMessage(e.to_string())),
         }
     }
 

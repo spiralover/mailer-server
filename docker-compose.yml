@@ -93,6 +93,8 @@ services:
       - .env
     volumes:
       - "/spiralover/mailer/redis/data:/data"
+    environment:
+      REDIS_PASSWORD: "${REDIS_PASSWORD}"
     networks:
       - mailer-main
     dns:
@@ -103,7 +105,7 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
-    command: "redis-server --loglevel warning --port ${MAILER_REDIS_PORT}"
+    command: "redis-server --loglevel warning --port ${REDIS_PORT} --requirepass '${REDIS_PASSWORD}'"
 
 networks:
   mailer-main:

@@ -1,8 +1,8 @@
+use diesel::dsl::not;
 use diesel::{
     BoolExpressionMethods, ExpressionMethods, PgTextExpressionMethods, QueryDsl, RunQueryDsl,
     SaveChangesDsl,
 };
-use diesel::dsl::not;
 use uuid::Uuid;
 
 use crate::enums::app_message::AppMessage;
@@ -106,14 +106,14 @@ impl UserUiMenuItemRepository {
         diesel::update(
             user_ui_menu_items::table.filter(user_ui_menu_items::ui_menu_item_id.eq(id)),
         )
-            .set(user_ui_menu_items::deleted_at.eq(current_timestamp()))
-            .execute(&mut pool.conn())
-            .into_app_result()?;
+        .set(user_ui_menu_items::deleted_at.eq(current_timestamp()))
+        .execute(&mut pool.conn())
+        .into_app_result()?;
 
         ui_menu_item.deleted_at = Some(current_timestamp());
         ui_menu_item
             .save_changes::<UserUiMenuItem>(&mut pool.conn())
-            .map_err(|e| AppMessage::DatabaseError(e.to_string()))
+            .map_err(|e| AppMessage::DatabaseErrorMessage(e.to_string()))
     }
 
     pub fn list_assignable(&mut self, pool: &DBPool, user_id: Uuid) -> AppResult<Vec<UiMenuItem>> {

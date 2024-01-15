@@ -1,15 +1,14 @@
+use std::ffi::NulError;
 use std::fmt::{Debug, Display, Formatter};
 use std::io;
 
 use actix_web::{http::StatusCode, HttpResponse, ResponseError};
+use diesel::result::{DatabaseErrorInformation, DatabaseErrorKind, Error};
 use log::error;
+use serde::de::StdError;
 use serde::Serialize;
 use validator::ValidationErrors;
 
-use crate::enums::app_message::AppMessage::{
-    BlockingError, DatabaseEntityNotFound, DatabaseError, EntityNotFound, ErrorMessage,
-    InvalidUUID, IoError, RedisError, SuccessMessage, WarningMessage,
-};
 use crate::helpers::responder::{
     json_entity_not_found_response, json_error, json_error_message, json_error_message_status,
     json_success_message,
@@ -24,14 +23,33 @@ pub enum AppMessage {
     InternalServerError,
     IoError(io::Error),
     RedisError(redis::RedisError),
-    DatabaseError(String),
+    SerdeError(serde_json::Error),
     EntityNotFound(String),
-    DatabaseEntityNotFound,
     WarningMessage(&'static str),
     SuccessMessage(&'static str),
     ErrorMessage(String, StatusCode),
+    UnAuthorizedMessage(&'static str),
     FormValidationError(ValidationErrors),
     BlockingError(actix_web::error::BlockingError),
+
+    DatabaseError(
+        DatabaseErrorKind,
+        Box<dyn DatabaseErrorInformation + Send + Sync>,
+    ),
+    DatabaseRollbackErrorOnCommit {
+        rollback_error: Box<Error>,
+        commit_error: Box<Error>,
+    },
+    DatabaseErrorMessage(String),
+    DatabaseEntityNotFound,
+    DatabaseInvalidCString(NulError),
+    DatabaseQueryBuilderError(Box<dyn StdError + Send + Sync>),
+    DatabaseDeserializationError(Box<dyn StdError + Send + Sync>),
+    DatabaseSerializationError(Box<dyn StdError + Send + Sync>),
+    DatabaseRollbackTransaction,
+    DatabaseAlreadyInTransaction,
+    DatabaseNotInTransaction,
+    DatabaseBrokenTransactionManager,
 }
 
 #[derive(Serialize)]
@@ -49,7 +67,66 @@ impl AppMessage {
 
 impl From<io::Error> for AppMessage {
     fn from(value: io::Error) -> Self {
-        IoError(value)
+        AppMessage::IoError(value)
+    }
+}
+
+impl From<actix_web::error::BlockingError> for AppMessage {
+    fn from(value: actix_web::error::BlockingError) -> Self {
+        AppMessage::BlockingError(value)
+    }
+}
+
+impl From<Error> for AppMessage {
+    fn from(value: Error) -> Self {
+        match value {
+            Error::InvalidCString(err) => AppMessage::DatabaseErrorMessage(err.to_string()),
+            Error::DatabaseError(x, y) => AppMessage::DatabaseError(x, y),
+            Error::NotFound => AppMessage::DatabaseEntityNotFound,
+            Error::QueryBuilderError(err) => AppMessage::DatabaseQueryBuilderError(err),
+            Error::DeserializationError(err) => AppMessage::DatabaseDeserializationError(err),
+            Error::SerializationError(err) => AppMessage::DatabaseDeserializationError(err),
+            Error::RollbackErrorOnCommit {
+                commit_error,
+                rollback_error,
+            } => AppMessage::DatabaseRollbackErrorOnCommit {
+                commit_error,
+                rollback_error,
+            },
+            Error::RollbackTransaction => AppMessage::DatabaseRollbackTransaction,
+            Error::AlreadyInTransaction => AppMessage::DatabaseAlreadyInTransaction,
+            Error::NotInTransaction => AppMessage::DatabaseNotInTransaction,
+            Error::BrokenTransactionManager => AppMessage::DatabaseBrokenTransactionManager,
+            _ => AppMessage::InternalServerError,
+        }
+    }
+}
+
+impl From<AppMessage> for Error {
+    fn from(value: AppMessage) -> Self {
+        match value {
+            AppMessage::EntityNotFound(_) => Error::NotFound,
+            AppMessage::WarningMessage(err) => Error::QueryBuilderError(Box::from(err)),
+            AppMessage::ErrorMessage(err, _) => Error::QueryBuilderError(Box::from(err)),
+            AppMessage::DatabaseRollbackErrorOnCommit {
+                rollback_error,
+                commit_error,
+            } => Error::RollbackErrorOnCommit {
+                commit_error,
+                rollback_error,
+            },
+            AppMessage::DatabaseErrorMessage(err) => Error::QueryBuilderError(Box::from(err)),
+            AppMessage::DatabaseEntityNotFound => Error::NotFound,
+            AppMessage::DatabaseInvalidCString(err) => Error::InvalidCString(err),
+            AppMessage::DatabaseQueryBuilderError(err) => Error::QueryBuilderError(err),
+            AppMessage::DatabaseDeserializationError(err) => Error::DeserializationError(err),
+            AppMessage::DatabaseSerializationError(err) => Error::SerializationError(err),
+            AppMessage::DatabaseRollbackTransaction => Error::RollbackTransaction,
+            AppMessage::DatabaseAlreadyInTransaction => Error::AlreadyInTransaction,
+            AppMessage::DatabaseNotInTransaction => Error::NotInTransaction,
+            AppMessage::DatabaseBrokenTransactionManager => Error::BrokenTransactionManager,
+            _ => Error::NotFound,
+        }
     }
 }
 
@@ -59,45 +136,49 @@ pub fn format_message(status: &AppMessage, f: &mut Formatter<'_>) -> std::fmt::R
 
 fn get_message(status: &AppMessage) -> String {
     match status {
-        InvalidUUID => String::from("Invalid unique identifier"),
-        AppMessage::InternalServerError => String::from("Internal Server Error"),
+        AppMessage::InvalidUUID => String::from("Invalid unique identifier"),
         AppMessage::UnAuthorized => {
             string("You are not authorized to access requested resource(s)")
         }
-        EntityNotFound(entity) => format!("Such {} does not exits", entity),
-        DatabaseEntityNotFound => string("Such entity does not exits"),
-        IoError(error) => error.to_string(),
-        RedisError(error) => error.to_string(),
-        BlockingError(error) => error.to_string(),
-        DatabaseError(message) => message.clone(),
-        WarningMessage(message) => message.to_string(),
-        SuccessMessage(message) => message.to_string(),
-        ErrorMessage(message, _) => message.clone(),
+        AppMessage::EntityNotFound(entity) => format!("Such {} does not exits", entity),
+        AppMessage::DatabaseEntityNotFound => string("Such entity does not exits"),
+        AppMessage::IoError(error) => error.to_string(),
+        AppMessage::SerdeError(error) => error.to_string(),
+        AppMessage::RedisError(error) => error.to_string(),
+        AppMessage::BlockingError(error) => error.to_string(),
+        AppMessage::WarningMessage(message) => message.to_string(),
+        AppMessage::SuccessMessage(message) => message.to_string(),
+        AppMessage::ErrorMessage(message, _) => message.clone(),
+        AppMessage::UnAuthorizedMessage(message) => message.to_string(),
         AppMessage::FormValidationError(e) => String::from(e.to_string().as_str()),
+        _ => String::from("Internal Server Error"),
     }
 }
 
 pub fn send_response(status: &AppMessage) -> HttpResponse {
     match status {
-        EntityNotFound(entity) => json_entity_not_found_response(entity),
-        IoError(message) => {
+        AppMessage::EntityNotFound(entity) => json_entity_not_found_response(entity),
+        AppMessage::IoError(message) => {
             error!("IO Error: {}", message);
             json_error_message_status("Internal Server Error", StatusCode::INTERNAL_SERVER_ERROR)
         }
-        RedisError(message) => {
+        AppMessage::RedisError(message) => {
             error!("Redis Error: {}", message);
             json_error_message_status("Internal Server Error", StatusCode::INTERNAL_SERVER_ERROR)
         }
-        DatabaseError(message) => {
+        AppMessage::DatabaseErrorMessage(message) => {
             error!("DB Error: {}", message);
             json_error_message_status("Internal Server Error", StatusCode::INTERNAL_SERVER_ERROR)
         }
-        BlockingError(message) => {
+        AppMessage::BlockingError(message) => {
             error!("Blocking Error: {}", message);
             json_error_message_status("Internal Server Error", StatusCode::INTERNAL_SERVER_ERROR)
         }
-        ErrorMessage(message, status) => json_error_message_status(message, *status),
-        SuccessMessage(message) => json_success_message(message),
+        AppMessage::SuccessMessage(message) => json_success_message(message),
+        AppMessage::ErrorMessage(message, status) => json_error_message_status(message, *status),
+        AppMessage::UnAuthorizedMessage(message) => {
+            json_error_message_status(message, StatusCode::UNAUTHORIZED)
+        }
         AppMessage::FormValidationError(e) => {
             json_error(e, StatusCode::BAD_REQUEST, Some(string("Validation Error")))
         }
@@ -126,19 +207,21 @@ impl From<ValidationErrors> for AppMessage {
 impl ResponseError for AppMessage {
     fn status_code(&self) -> StatusCode {
         match self {
-            InvalidUUID => StatusCode::BAD_REQUEST,
-            SuccessMessage(_msg) => StatusCode::OK,
-            EntityNotFound(_msg) => StatusCode::NOT_FOUND,
-            DatabaseEntityNotFound => StatusCode::NOT_FOUND,
-            WarningMessage(_msg) => StatusCode::BAD_REQUEST,
-            IoError(_msg) => StatusCode::INTERNAL_SERVER_ERROR,
-            RedisError(_msg) => StatusCode::INTERNAL_SERVER_ERROR,
-            DatabaseError(_msg) => StatusCode::INTERNAL_SERVER_ERROR,
-            BlockingError(_msg) => StatusCode::INTERNAL_SERVER_ERROR,
-            ErrorMessage(_, status) => *status,
+            AppMessage::InvalidUUID => StatusCode::BAD_REQUEST,
+            AppMessage::SuccessMessage(_msg) => StatusCode::OK,
+            AppMessage::EntityNotFound(_msg) => StatusCode::NOT_FOUND,
+            AppMessage::DatabaseEntityNotFound => StatusCode::NOT_FOUND,
+            AppMessage::WarningMessage(_msg) => StatusCode::BAD_REQUEST,
+            AppMessage::IoError(_msg) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppMessage::SerdeError(_msg) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppMessage::RedisError(_msg) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppMessage::BlockingError(_msg) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppMessage::ErrorMessage(_, status) => *status,
             AppMessage::UnAuthorized => StatusCode::UNAUTHORIZED,
+            AppMessage::UnAuthorizedMessage(_) => StatusCode::UNAUTHORIZED,
             AppMessage::FormValidationError(_) => StatusCode::BAD_REQUEST,
             AppMessage::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            _ => StatusCode::INTERNAL_SERVER_ERROR, // all database-related errors are 500
         }
     }
 

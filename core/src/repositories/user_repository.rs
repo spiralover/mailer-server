@@ -1,4 +1,7 @@
-use diesel::{BoolExpressionMethods, ExpressionMethods, PgTextExpressionMethods, QueryDsl, RunQueryDsl, SaveChangesDsl};
+use diesel::{
+    BoolExpressionMethods, ExpressionMethods, PgTextExpressionMethods, QueryDsl, RunQueryDsl,
+    SaveChangesDsl,
+};
 use uuid::Uuid;
 
 use crate::helpers::db::{DatabaseConnectionHelper, OptionalResult};
@@ -8,7 +11,10 @@ use crate::helpers::http::QueryParams;
 use crate::helpers::string::password_hash;
 use crate::helpers::time::current_timestamp;
 use crate::helpers::DBPool;
-use crate::models::user::{TempPasswordStatus, User, UserFullName, UserMinimalData, UserRegisterForm, UserStatus, UserUpdateForm};
+use crate::models::user::{
+    TempPasswordStatus, User, UserCacheable, UserFullName, UserMinimalData, UserRegisterForm,
+    UserStatus, UserUpdateForm,
+};
 use crate::results::app_result::FormatAppResult;
 use crate::results::AppResult;
 use crate::schema::{user_roles, users};
@@ -30,11 +36,7 @@ impl UserRepository {
             .into_app_result()
     }
 
-    pub fn list(
-        &mut self,
-        pool: &DBPool,
-        query_params: QueryParams,
-    ) -> AppResult<PageData<User>> {
+    pub fn list(&mut self, pool: &DBPool, query_params: QueryParams) -> AppResult<PageData<User>> {
         let search_format = format!("%{}%", query_params.get_search_query());
         users::table
             .filter(
@@ -158,6 +160,15 @@ impl UserRepository {
             .filter(users::user_id.eq(id))
             .filter(users::deleted_at.is_null())
             .first::<String>(&mut pool.conn())
+            .required("user")
+    }
+
+    pub fn fetch_cacheable(&mut self, pool: &DBPool, id: Uuid) -> AppResult<UserCacheable> {
+        users::table
+            .select((users::user_id, users::username, users::email))
+            .filter(users::user_id.eq(id))
+            .filter(users::deleted_at.is_null())
+            .first::<UserCacheable>(&mut pool.conn())
             .required("user")
     }
 

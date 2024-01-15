@@ -4,19 +4,22 @@ use actix_web::http::StatusCode;
 use actix_web::web::Data;
 use actix_web::HttpRequest;
 use jsonwebtoken::{decode, DecodingKey, TokenData, Validation};
+use log::{debug, error};
 use uuid::Uuid;
 
 use crate::app_state::AppState;
+use crate::enums::app_message::AppMessage;
 use crate::enums::app_message::AppMessage::{UnAuthorized, WarningMessage};
 use crate::enums::auth_permission::AuthPermission;
 use crate::helpers::request::RequestHelper;
 use crate::helpers::responder::{JsonResponse, JsonResponseEmptyMessage};
 use crate::helpers::DBPool;
 use crate::models::user::UserCacheData;
+use crate::repositories::personal_access_token_repository::PersonaAccessTokenRepository;
 use crate::repositories::user_repository::UserRepository;
 use crate::results::{AppResult, HttpResult};
 use crate::services::auth_service::TokenClaims;
-use crate::services::redis_service::RedisService;
+use crate::services::cache_service::CacheService;
 use crate::services::role_service::RoleService;
 
 pub fn has_permission<F>(req: HttpRequest, p: AuthPermission, f: F) -> HttpResult
@@ -104,18 +107,52 @@ pub(crate) fn make_unauthorized_message(msg: &str) -> JsonResponse<JsonResponseE
 
 pub(crate) fn get_auth_user(
     pool: &DBPool,
-    mut srv: RedisService,
-    claims: TokenClaims,
+    cache: &mut CacheService,
+    str_uuid: String,
 ) -> AppResult<UserCacheData> {
-    match srv.get(claims.sub.clone()) {
-        Ok(data) => Ok(serde_json::from_str::<UserCacheData>(&data).unwrap()),
-        Err(_err) => {
-            let user_id = Uuid::from_str(&claims.sub).unwrap();
-            UserRepository.find_by_id(pool, user_id).map(|user| {
-                let user = user.into_cache_data();
-                let _ = srv.set(user_id.to_string(), user.clone());
-                user
-            })
+    cache.get_or_put::<UserCacheData, _>(&str_uuid, |_| {
+        debug!("caching user({})...", str_uuid);
+
+        let user_id = Uuid::from_str(&str_uuid).unwrap();
+        let user = UserRepository
+            .fetch_cacheable(pool, user_id)
+            .map(|user| user.into_cache_data())?;
+
+        Ok(user)
+    })
+}
+
+pub(crate) fn fetch_pat_user(
+    app: &Data<AppState>,
+    cache: &mut CacheService,
+    token: String,
+) -> AppResult<UserCacheData> {
+    cache.get_or_put::<UserCacheData, _>(&token, |c| {
+        let pat_result = PersonaAccessTokenRepository.find_by_token(app.database(), token.clone());
+
+        match pat_result {
+            Ok(pat) => {
+                if !pat.is_usable() {
+                    let msg = Box::leak(Box::new(format!(
+                        "personal access token has expired on {:?}",
+                        pat.expired_at
+                    )));
+
+                    let _ = c.delete(&token);
+
+                    return Err(AppMessage::UnAuthorizedMessage(msg));
+                }
+
+                UserRepository
+                    .fetch_cacheable(app.database(), pat.user_id)
+                    .map(|user| user.into_cache_data())
+            }
+            Err(err) => {
+                error!("pat error: {:?}", err);
+                Err(AppMessage::UnAuthorizedMessage(
+                    "failed to authenticate personal access token",
+                ))
+            }
         }
-    }
+    })
 }

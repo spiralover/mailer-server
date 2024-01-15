@@ -90,6 +90,24 @@ pub struct UserFullName {
     pub last_name: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, Queryable, Clone, Debug)]
+pub struct UserCacheable {
+    pub user_id: Uuid,
+    pub username: String,
+    pub email: String,
+}
+
+impl UserCacheable {
+    pub fn into_cache_data(self) -> UserCacheData {
+        UserCacheData {
+            user_id: self.user_id,
+            username: self.username,
+            email: self.email,
+            roles: vec![],
+        }
+    }
+}
+
 pub trait FullName {
     fn full_name(&self) -> String;
 }
@@ -170,7 +188,7 @@ impl User {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct UserCacheData {
     pub user_id: Uuid,
     pub username: String,

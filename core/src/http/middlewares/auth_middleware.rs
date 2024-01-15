@@ -12,10 +12,10 @@ use uuid::Uuid;
 
 use crate::app_state::AppState;
 use crate::enums::auth_role::AuthRole;
-use crate::helpers::auth::{decode_auth_token, get_auth_user, make_unauthorized_message};
+use crate::helpers::auth::{
+    decode_auth_token, fetch_pat_user, get_auth_user, make_unauthorized_message,
+};
 use crate::models::user::UserCacheData;
-use crate::repositories::personal_access_token_repository::PersonaAccessTokenRepository;
-use crate::repositories::user_repository::UserRepository;
 use crate::repositories::user_role_repository::UserRoleRepository;
 use crate::results::http_result::ErroneousOptionResponse;
 
@@ -91,11 +91,11 @@ where
         }
 
         let app = request.app_data::<Data<AppState>>().unwrap();
-        let mut redis_service = app.services.redis.clone();
+        let mut cache = app.services.cache.clone();
         let pat_prefix = app.auth_pat_prefix.clone();
 
-        let raw_token = token.unwrap();
-        let is_pat = raw_token.starts_with(&pat_prefix.clone());
+        let token = token.unwrap();
+        let is_pat = token.starts_with(&pat_prefix.clone());
 
         let error_messenger = |req: HttpRequest, msg: &str| {
             let response = HttpResponse::Unauthorized()
@@ -108,11 +108,11 @@ where
         let user_lookup = match is_pat {
             // AUTHENTICATION TOKEN
             false => {
-                let decoded = decode_auth_token(raw_token.clone(), pat_prefix, app.app_key.clone());
+                let decoded = decode_auth_token(token.clone(), pat_prefix, app.app_key.clone());
 
                 if let Err(err) = decoded {
                     let (req, _pl) = request.into_parts();
-                    debug!("invalid token({}): {:?}", raw_token, err);
+                    debug!("invalid token({}): {:?}", token, err);
                     return error_messenger(req, "invalid authentication token");
                 }
 
@@ -127,54 +127,16 @@ where
                     return error_messenger(req, message);
                 }
 
-                get_auth_user(app.database(), redis_service, claims)
+                get_auth_user(app.database(), &mut cache, claims.sub)
             }
 
             // PERSONAL ACCESS TOKEN
-            true => match redis_service.get(raw_token.clone()) {
-                Ok(data) => Ok(serde_json::from_str::<UserCacheData>(&data).unwrap()),
-                Err(_err) => {
-                    let pat_result = PersonaAccessTokenRepository
-                        .find_by_token(app.database(), raw_token.clone());
-
-                    match pat_result {
-                        Ok(pat) => {
-                            if !pat.is_usable() {
-                                let msg = Box::leak(Box::new(format!(
-                                    "personal access token has expired on {:?}",
-                                    pat.expired_at
-                                )));
-
-                                let _ = redis_service.delete(raw_token);
-
-                                let (req, _pl) = request.into_parts();
-                                return error_messenger(req, msg);
-                            }
-
-                            UserRepository
-                                .find_by_id(app.database(), pat.user_id)
-                                .map(|user| {
-                                    let user = user.into_cache_data();
-                                    let _ = redis_service.set(raw_token, user.clone());
-                                    user
-                                })
-                        }
-                        Err(err) => {
-                            error!("pat error: {:?}", err);
-                            let (req, _pl) = request.into_parts();
-                            return error_messenger(
-                                req,
-                                "failed to authenticate personal access token",
-                            );
-                        }
-                    }
-                }
-            },
+            true => fetch_pat_user(app, &mut cache, token.clone()),
         };
 
         if user_lookup.is_error_or_empty() {
             let (req, _pl) = request.into_parts();
-            return error_messenger(req, "Invalid auth token, user not found");
+            return error_messenger(req, &user_lookup.unwrap_err().to_string());
         }
 
         let user = user_lookup.unwrap();

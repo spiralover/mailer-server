@@ -6,6 +6,7 @@ use tera::{Context, Tera};
 
 use crate::helpers::DBPool;
 use crate::models::mail::MailBox;
+use crate::services::cache_service::CacheService;
 use crate::services::redis_service::RedisService;
 
 #[derive(Clone)]
@@ -41,6 +42,7 @@ pub struct AppState {
 #[derive(Clone)]
 pub struct AppServices {
     pub redis: RedisService,
+    pub cache: CacheService,
 }
 
 #[derive(Clone)]

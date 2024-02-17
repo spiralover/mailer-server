@@ -3,8 +3,8 @@ use actix_web::{App, HttpServer};
 use env_logger::Env;
 use log::info;
 
-use core::app_setup::{load_environment_variables, make_app_state, get_server_host_config, get_worker_configs, make_thread_name};
-use core::http::kernel::{actix_default_service, register_routes, setup_logger};
+use cosmic::app_setup::{load_environment_variables, make_app_state, get_server_host_config, get_worker_configs, make_thread_name};
+use cosmic::http::kernel::{actix_default_service, register_routes, setup_logger};
 
 use crate::background_service::create_background_service;
 use crate::http::routes;

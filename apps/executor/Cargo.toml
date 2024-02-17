@@ -19,5 +19,5 @@ redis = { workspace = true }
 futures-util = { workspace = true }
 diesel = { workspace = true }
 reqwest = { workspace = true }
-core = { path = "../../core" }
+cosmic = { path = "../../cosmic" }
 

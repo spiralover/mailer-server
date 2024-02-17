@@ -5,31 +5,31 @@ use log::error;
 use uuid::Uuid;
 use validator::Validate;
 
-use core::enums::app_message::AppMessage::SuccessMessage;
-use core::enums::auth_permission::AuthPermission;
-use core::enums::entities::Entities;
-use core::helpers::form::IdsVecDto;
-use core::helpers::http::{QueryParams, UploadForm};
-use core::helpers::request::RequestHelper;
-use core::helpers::string::string;
-use core::helpers::DBPool;
-use core::models::file_upload::FileUploadData;
-use core::models::role::RoleParam;
-use core::models::user::{PasswordForm, User, UserRegisterForm, UserStatus, UserUpdateForm};
-use core::models::user_permission::PermissionsParam;
-use core::models::user_ui_menu_item::{MenuItemCreateDto, UserUiMenuItem};
-use core::repositories::auth_attempt_repository::AuthAttemptRepository;
-use core::repositories::role_repository::RoleRepository;
-use core::repositories::user_permission_repository::UserPermissionRepository;
-use core::repositories::user_repository::UserRepository;
-use core::repositories::user_role_repository::UserRoleRepository;
-use core::repositories::user_ui_menu_item_repository::UserUiMenuItemRepository;
-use core::results::http_result::ActixBlockingResultResponder;
-use core::results::HttpResult;
-use core::services::file_upload_service::FileUploadService;
-use core::services::role_service::RoleService;
-use core::services::user_service::UserService;
-use core::services::user_ui_menu_item_service::UserUiMenuItemService;
+use cosmic::enums::app_message::AppMessage::SuccessMessageStr;
+use cosmic::enums::auth_permission::AuthPermission;
+use cosmic::enums::entities::Entities;
+use cosmic::helpers::form::IdsVecDto;
+use cosmic::helpers::http::{QueryParams, UploadForm};
+use cosmic::helpers::request::RequestHelper;
+use cosmic::helpers::string::string;
+use cosmic::helpers::DBPool;
+use cosmic::models::file_upload::FileUploadData;
+use cosmic::models::role::RoleParam;
+use cosmic::models::user::{PasswordForm, User, UserRegisterForm, UserStatus, UserUpdateForm};
+use cosmic::models::user_permission::PermissionsParam;
+use cosmic::models::user_ui_menu_item::{MenuItemCreateDto, UserUiMenuItem};
+use cosmic::repositories::auth_attempt_repository::AuthAttemptRepository;
+use cosmic::repositories::role_repository::RoleRepository;
+use cosmic::repositories::user_permission_repository::UserPermissionRepository;
+use cosmic::repositories::user_repository::UserRepository;
+use cosmic::repositories::user_role_repository::UserRoleRepository;
+use cosmic::repositories::user_ui_menu_item_repository::UserUiMenuItemRepository;
+use cosmic::results::http_result::ActixBlockingResultResponder;
+use cosmic::results::HttpResult;
+use cosmic::services::file_upload_service::FileUploadService;
+use cosmic::services::role_service::RoleService;
+use cosmic::services::user_service::UserService;
+use cosmic::services::user_ui_menu_item_service::UserUiMenuItemService;
 
 pub fn user_controller(cfg: &mut ServiceConfig) {
     cfg.service(index);
@@ -370,7 +370,7 @@ async fn remove_menu_item(path: Path<(Uuid, Uuid)>, req: HttpRequest) -> HttpRes
         let ids = path.into_inner();
         UserUiMenuItemService
             .delete_by_item_id(ctx.database(), ids.0, ids.1)
-            .map(|_| SuccessMessage("removed"))
+            .map(|_| SuccessMessageStr("removed"))
     })
     .await
     .respond()

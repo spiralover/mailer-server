@@ -1,6 +1,6 @@
 use crate::http::system_controller::system_controller;
-use core::http::kernel::{Controller, Route};
-use core::http::middlewares::auth_middleware::AuthMiddleware;
+use cosmic::http::kernel::{Controller, Route};
+use cosmic::http::middlewares::auth_middleware::AuthMiddleware;
 
 pub(crate) mod system_controller;
 

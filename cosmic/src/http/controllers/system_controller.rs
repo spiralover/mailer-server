@@ -1,10 +1,10 @@
 use actix_web::get;
 use actix_web::web::ServiceConfig;
 
-use cosmic::enums::app_message::AppMessage;
-use cosmic::results::HttpResult;
+use crate::enums::app_message::AppMessage;
+use crate::results::HttpResult;
 
-pub(crate) fn system_controller(cfg: &mut ServiceConfig) {
+pub fn system_controller(cfg: &mut ServiceConfig) {
     cfg.service(docker_test);
 }
 

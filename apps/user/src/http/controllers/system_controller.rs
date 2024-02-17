@@ -11,22 +11,22 @@ use serde::Deserialize;
 use strum::VariantNames;
 use uuid::Uuid;
 
-use core::app_state::AppState;
-use core::enums::auth_permission::AuthPermission;
-use core::enums::auth_role::AuthRole;
-use core::helpers::responder::json_success_message;
-use core::models::role::RoleCreateForm;
-use core::models::user::{UserRegisterForm, UserStatus};
-use core::models::user_ui_menu_item::MenuItemCreateDto;
-use core::models::DBPool;
-use core::repositories::permission_repository::PermissionRepository;
-use core::repositories::role_repository::RoleRepository;
-use core::repositories::ui_menu_item_repository::UiMenuItemRepository;
-use core::results::AppResult;
-use core::services::permission_service::PermissionService;
-use core::services::role_service::RoleService;
-use core::services::user_service::UserService;
-use core::services::user_ui_menu_item_service::UserUiMenuItemService;
+use cosmic::app_state::AppState;
+use cosmic::enums::auth_permission::AuthPermission;
+use cosmic::enums::auth_role::AuthRole;
+use cosmic::helpers::responder::json_success_message;
+use cosmic::models::role::RoleCreateForm;
+use cosmic::models::user::{UserRegisterForm, UserStatus};
+use cosmic::models::user_ui_menu_item::MenuItemCreateDto;
+use cosmic::models::DBPool;
+use cosmic::repositories::permission_repository::PermissionRepository;
+use cosmic::repositories::role_repository::RoleRepository;
+use cosmic::repositories::ui_menu_item_repository::UiMenuItemRepository;
+use cosmic::results::AppResult;
+use cosmic::services::permission_service::PermissionService;
+use cosmic::services::role_service::RoleService;
+use cosmic::services::user_service::UserService;
+use cosmic::services::user_ui_menu_item_service::UserUiMenuItemService;
 
 pub fn system_controller(cfg: &mut ServiceConfig) {
     cfg.service(database_seed);
@@ -157,7 +157,7 @@ async fn database_seed(app: Data<AppState>) -> HttpResponse {
 }
 
 #[allow(dead_code)]
-fn get_random_uuid(ids: &Vec<Uuid>) -> &Uuid {
+fn get_random_uuid(ids: &[Uuid]) -> &Uuid {
     let length = ids.len() as i64;
     let upper_bound = (length - 1) as usize;
     ids.get(rand::thread_rng().gen_range(0..upper_bound))
@@ -167,7 +167,7 @@ fn get_random_uuid(ids: &Vec<Uuid>) -> &Uuid {
 async fn seed_users(app: Arc<AppState>) {
     let filename = "users.json";
     if !Path::new(filename).exists() {
-        return; // skip since file does not exits
+        return; // skip since file does not exists
     }
 
     let db_pool = app.database();

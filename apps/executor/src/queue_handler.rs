@@ -4,11 +4,11 @@ use actix_web::rt::{spawn, time};
 use log::{error, info};
 use redis::Commands;
 
-use core::app_state::AppState;
-use core::models::mail::{
+use cosmic::app_state::AppState;
+use cosmic::models::mail::{
     MailFailureResponse, MailQueueablePayload, MailSaved, MailSuccessResponse,
 };
-use core::services::mail_service::MailService;
+use cosmic::services::mail_service::MailService;
 
 use crate::redis_error_handler::handle_redis_error;
 

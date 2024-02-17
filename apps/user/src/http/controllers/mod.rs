@@ -1,11 +1,11 @@
-use core::http::controllers::application_controller::application_controller;
-use core::http::controllers::auth_controller::auth_controller;
-use core::http::controllers::main_controller_guest::main_controller_guest;
-use core::http::controllers::misc_controller::misc_controller;
-use core::http::controllers::profile_controller::profile_controller;
-use core::http::controllers::setting_controller::setting_controller;
-use core::http::kernel::{Controller, Route};
-use core::http::middlewares::auth_middleware::AuthMiddleware;
+use cosmic::http::controllers::application_controller::application_controller;
+use cosmic::http::controllers::auth_controller::auth_controller;
+use cosmic::http::controllers::main_controller_guest::main_controller_guest;
+use cosmic::http::controllers::misc_controller::misc_controller;
+use cosmic::http::controllers::profile_controller::profile_controller;
+use cosmic::http::controllers::setting_controller::setting_controller;
+use cosmic::http::kernel::{Controller, Route};
+use cosmic::http::middlewares::auth_middleware::AuthMiddleware;
 
 use crate::http::controllers::announcement_controller::announcement_controller;
 use crate::http::controllers::notification_controller::notification_controller;

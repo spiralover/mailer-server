@@ -1,6 +1,0 @@
-pub mod app_message;
-pub mod auth_permission;
-pub mod auth_role;
-pub mod days;
-pub mod department_codes;
-pub mod entities;

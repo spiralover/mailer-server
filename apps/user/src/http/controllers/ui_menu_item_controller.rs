@@ -2,14 +2,14 @@ use actix_web::web::{block, Json, Path, Query, ServiceConfig};
 use actix_web::{delete, get, post, put, HttpRequest};
 use uuid::Uuid;
 
-use core::enums::auth_permission::AuthPermission;
-use core::helpers::http::QueryParams;
-use core::helpers::request::RequestHelper;
-use core::models::ui_menu_item::CreateForm;
-use core::repositories::ui_menu_item_repository::UiMenuItemRepository;
-use core::results::http_result::ActixBlockingResultResponder;
-use core::results::HttpResult;
-use core::services::ui_menu_item_service::UiMenuItemService;
+use cosmic::enums::auth_permission::AuthPermission;
+use cosmic::helpers::http::QueryParams;
+use cosmic::helpers::request::RequestHelper;
+use cosmic::models::ui_menu_item::CreateForm;
+use cosmic::repositories::ui_menu_item_repository::UiMenuItemRepository;
+use cosmic::results::http_result::ActixBlockingResultResponder;
+use cosmic::results::HttpResult;
+use cosmic::services::ui_menu_item_service::UiMenuItemService;
 
 pub fn ui_menu_item_controller(cfg: &mut ServiceConfig) {
     cfg.service(index);

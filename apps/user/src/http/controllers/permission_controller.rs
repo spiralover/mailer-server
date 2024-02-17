@@ -1,12 +1,12 @@
 use actix_web::web::{block, Path, Query, ServiceConfig};
 use actix_web::{get, HttpRequest};
 
-use core::enums::auth_permission::AuthPermission;
-use core::helpers::http::QueryParams;
-use core::helpers::request::RequestHelper;
-use core::repositories::permission_repository::PermissionRepository;
-use core::results::http_result::ActixBlockingResultResponder;
-use core::results::HttpResult;
+use cosmic::enums::auth_permission::AuthPermission;
+use cosmic::helpers::http::QueryParams;
+use cosmic::helpers::request::RequestHelper;
+use cosmic::repositories::permission_repository::PermissionRepository;
+use cosmic::results::http_result::ActixBlockingResultResponder;
+use cosmic::results::HttpResult;
 
 pub fn permission_controller(cfg: &mut ServiceConfig) {
     cfg.service(index);

@@ -7,8 +7,8 @@ use actix_web::HttpServer;
 use env_logger::Env;
 use log::info;
 
-use core::app_setup::{get_server_host_config, load_environment_variables, make_app_state};
-use core::http::kernel::{
+use cosmic::app_setup::{get_server_host_config, load_environment_variables, make_app_state};
+use cosmic::http::kernel::{
     actix_default_service, register_middlewares, register_routes, setup_cors, setup_logger,
 };
 

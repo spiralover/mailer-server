@@ -2,17 +2,17 @@ use actix_web::web::{block, Data, Json, Path, Query, ServiceConfig};
 use actix_web::{get, post, HttpRequest};
 use uuid::Uuid;
 
-use core::app_state::AppState;
-use core::enums::auth_permission::AuthPermission;
-use core::helpers::auth::check_permission;
-use core::helpers::http::QueryParams;
-use core::helpers::request::RequestHelper;
-use core::helpers::DBPool;
-use core::models::announcement::AnnouncementCreateForm;
-use core::repositories::announcement_repository::AnnouncementRepository;
-use core::results::http_result::ActixBlockingResultResponder;
-use core::results::HttpResult;
-use core::services::announcement_service::AnnouncementService;
+use cosmic::app_state::AppState;
+use cosmic::enums::auth_permission::AuthPermission;
+use cosmic::helpers::auth::check_permission;
+use cosmic::helpers::http::QueryParams;
+use cosmic::helpers::request::RequestHelper;
+use cosmic::helpers::DBPool;
+use cosmic::models::announcement::AnnouncementCreateForm;
+use cosmic::repositories::announcement_repository::AnnouncementRepository;
+use cosmic::results::http_result::ActixBlockingResultResponder;
+use cosmic::results::HttpResult;
+use cosmic::services::announcement_service::AnnouncementService;
 
 pub fn announcement_controller(cfg: &mut ServiceConfig) {
     cfg.service(index);

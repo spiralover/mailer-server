@@ -2,18 +2,18 @@ use actix_web::{delete, get, HttpRequest, patch, post, put};
 use actix_web::web::{block, Json, Path, Query, ServiceConfig};
 use uuid::Uuid;
 
-use core::enums::auth_permission::AuthPermission;
-use core::helpers::http::QueryParams;
-use core::helpers::request::RequestHelper;
-use core::models::role::RoleCreateForm;
-use core::models::user_permission::PermissionsParam;
-use core::repositories::role_permission_repository::RolePermissionRepository;
-use core::repositories::role_repository::RoleRepository;
-use core::repositories::user_repository::UserRepository;
-use core::results::http_result::ActixBlockingResultResponder;
-use core::results::HttpResult;
-use core::services::role_permission_service::RolePermissionService;
-use core::services::role_service::RoleService;
+use cosmic::enums::auth_permission::AuthPermission;
+use cosmic::helpers::http::QueryParams;
+use cosmic::helpers::request::RequestHelper;
+use cosmic::models::role::RoleCreateForm;
+use cosmic::models::user_permission::PermissionsParam;
+use cosmic::repositories::role_permission_repository::RolePermissionRepository;
+use cosmic::repositories::role_repository::RoleRepository;
+use cosmic::repositories::user_repository::UserRepository;
+use cosmic::results::http_result::ActixBlockingResultResponder;
+use cosmic::results::HttpResult;
+use cosmic::services::role_permission_service::RolePermissionService;
+use cosmic::services::role_service::RoleService;
 
 pub fn role_controller(cfg: &mut ServiceConfig) {
     cfg.service(index);

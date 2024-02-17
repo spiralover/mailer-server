@@ -1,7 +1,7 @@
 [workspace]
 resolver="2"
 members = [
-    "core",
+    "cosmic",
     "apps/user",
     "apps/executor"
 ]
@@ -28,6 +28,7 @@ futures = "0.3"
 actix-multipart = "0.6.0"
 strum_macros = "0.25.1"
 jsonwebtoken = "9.1.0"
+mobc = { version = "0.8", features = ["tokio"] }
 serde = { version = "1.0", features = ["derive"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }

@@ -57,7 +57,7 @@ COPY ../../app-refresh-setup.sh app-refresh-setup.sh
 # copy folders
 COPY resources resources
 
-RUN rm apps core docs examples .github -rf
+RUN rm apps cosmic docs examples .github -rf
 
 # Copy our built binary
 COPY --from=build /target/release/user /usr/local/bin/user

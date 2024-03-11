@@ -94,7 +94,7 @@ services:
     volumes:
       - "/spiralover/mailer/redis/data:/data"
     environment:
-      REDIS_PASSWORD: "${REDIS_PASSWORD}"
+      REDIS_PASSWORD: "${MAILER_REDIS_PASSWORD}"
     networks:
       - mailer-main
     dns:

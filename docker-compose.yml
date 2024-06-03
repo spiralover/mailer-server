@@ -20,6 +20,10 @@ services:
       - "${MAILER_DOCKER_PRIVATE_IP}:4401:4401"
     networks:
       - mailer-main
+    dns:
+      - "${MAILER_DOCKER_DNS_PUBLIC_1}"
+      - "${MAILER_DOCKER_DNS_PUBLIC_2}"
+      - "${MAILER_DOCKER_DNS_PREFIX}.254"
     extra_hosts:
       - host.docker.internal:host-gateway
     depends_on:
@@ -49,6 +53,10 @@ services:
       - "${MAILER_DOCKER_PRIVATE_IP}:4402:4402"
     networks:
       - mailer-main
+    dns:
+      - "${MAILER_DOCKER_DNS_PUBLIC_1}"
+      - "${MAILER_DOCKER_DNS_PUBLIC_2}"
+      - "${MAILER_DOCKER_DNS_PREFIX}.254"
     extra_hosts:
       - host.docker.internal:host-gateway
     depends_on:

@@ -17,6 +17,8 @@ CREATE TABLE mails
     updated_at      TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+SELECT auto_handle_updated_at('mails');
+
 ALTER TABLE mails
     ADD CONSTRAINT fk_mails_created_by FOREIGN KEY (created_by) REFERENCES users (user_id);
 

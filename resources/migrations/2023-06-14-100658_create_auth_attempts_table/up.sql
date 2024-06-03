@@ -14,5 +14,7 @@ CREATE TABLE auth_attempts
     deleted_at               TIMESTAMP     NULL     DEFAULT NULL
 );
 
+SELECT auto_handle_updated_at('auth_attempts');
+
 ALTER TABLE auth_attempts
     ADD CONSTRAINT fk_auth_attempts_user_id FOREIGN KEY (user_id) REFERENCES users (user_id);

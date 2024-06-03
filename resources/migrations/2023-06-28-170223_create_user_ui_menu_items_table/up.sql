@@ -10,6 +10,8 @@ CREATE TABLE user_ui_menu_items
     deleted_at           TIMESTAMP NULL     DEFAULT NULL
 );
 
+SELECT auto_handle_updated_at('user_ui_menu_items');
+
 ALTER TABLE user_ui_menu_items
     ADD CONSTRAINT fk_user_ui_menu_items_created_by FOREIGN KEY (created_by) REFERENCES users (user_id);
 

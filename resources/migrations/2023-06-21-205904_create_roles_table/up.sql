@@ -10,5 +10,7 @@ CREATE TABLE roles
     deleted_at TIMESTAMP    NULL     DEFAULT NULL
 );
 
+SELECT auto_handle_updated_at('roles');
+
 ALTER TABLE roles
     ADD CONSTRAINT fk_roles_created_by FOREIGN KEY (created_by) REFERENCES users (user_id);

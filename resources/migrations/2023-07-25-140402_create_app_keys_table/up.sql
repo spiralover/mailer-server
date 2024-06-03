@@ -1,15 +1,17 @@
 CREATE TABLE app_keys
 (
-    app_key_id UUID         NOT NULL UNIQUE PRIMARY KEY,
-    created_by    UUID         NOT NULL,
-    application_id     UUID         NOT NULL,
-    public_key    VARCHAR(500) NOT NULL,
-    private_key   VARCHAR(500) NOT NULL,
-    status        VARCHAR(20)  NOT NULL DEFAULT 'active',
-    created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    deleted_at    TIMESTAMP    NULL     DEFAULT NULL
+    app_key_id     UUID         NOT NULL UNIQUE PRIMARY KEY,
+    created_by     UUID         NOT NULL,
+    application_id UUID         NOT NULL,
+    public_key     VARCHAR(500) NOT NULL,
+    private_key    VARCHAR(500) NOT NULL,
+    status         VARCHAR(20)  NOT NULL DEFAULT 'active',
+    created_at     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at     TIMESTAMP    NULL     DEFAULT NULL
 );
+
+SELECT auto_handle_updated_at('app_keys');
 
 ALTER TABLE app_keys
     ADD CONSTRAINT fk_app_keys_created_by FOREIGN KEY (created_by) REFERENCES users (user_id);

@@ -21,6 +21,8 @@ CREATE TABLE users
     deleted_at                 TIMESTAMP    NULL     DEFAULT NULL
 );
 
+SELECT auto_handle_updated_at('users');
+
 ALTER TABLE users
     ADD CONSTRAINT fk_users_created_by FOREIGN KEY (created_by) REFERENCES users (user_id);
 

@@ -14,6 +14,8 @@ CREATE TABLE applications
     deleted_at     TIMESTAMP     NULL     DEFAULT NULL
 );
 
+SELECT auto_handle_updated_at('applications');
+
 ALTER TABLE applications
     ADD CONSTRAINT fk_applications_created_by FOREIGN KEY (created_by) REFERENCES users (user_id);
 

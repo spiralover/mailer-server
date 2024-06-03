@@ -12,5 +12,7 @@ CREATE TABLE personal_access_tokens
     deleted_at TIMESTAMP     NULL     DEFAULT NULL
 );
 
+SELECT auto_handle_updated_at('personal_access_tokens');
+
 ALTER TABLE personal_access_tokens
     ADD CONSTRAINT fk_personal_access_tokens_user_id FOREIGN KEY (user_id) REFERENCES users (user_id);

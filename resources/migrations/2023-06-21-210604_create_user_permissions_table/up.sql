@@ -9,6 +9,8 @@ CREATE TABLE user_permissions
     deleted_at         TIMESTAMP NULL     DEFAULT NULL
 );
 
+SELECT auto_handle_updated_at('user_permissions');
+
 CREATE INDEX user_permissions_permission_id_index ON user_permissions (permission_id);
 CREATE INDEX user_permissions_user_id_index ON user_permissions (user_id);
 

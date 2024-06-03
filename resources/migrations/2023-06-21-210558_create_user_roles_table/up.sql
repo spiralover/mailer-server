@@ -9,6 +9,8 @@ CREATE TABLE user_roles
     deleted_at   TIMESTAMP NULL     DEFAULT NULL
 );
 
+SELECT auto_handle_updated_at('user_roles');
+
 CREATE INDEX user_roles_role_id_index ON user_roles (role_id);
 CREATE INDEX user_roles_user_id_index ON user_roles (user_id);
 

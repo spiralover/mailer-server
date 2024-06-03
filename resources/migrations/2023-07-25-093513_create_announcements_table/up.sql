@@ -9,5 +9,7 @@ CREATE TABLE announcements
     deleted_at      TIMESTAMP    NULL     DEFAULT NULL
 );
 
+SELECT auto_handle_updated_at('announcements');
+
 ALTER TABLE announcements
     ADD CONSTRAINT fk_announcements_user_id FOREIGN KEY (sender_id) REFERENCES users (user_id);

@@ -9,6 +9,8 @@ CREATE TABLE role_permissions
     deleted_at         TIMESTAMP NULL     DEFAULT NULL
 );
 
+SELECT auto_handle_updated_at('role_permissions');
+
 CREATE INDEX role_permissions_role_index ON role_permissions (role_id);
 CREATE INDEX role_permissions_permission_id_index ON role_permissions (permission_id);
 

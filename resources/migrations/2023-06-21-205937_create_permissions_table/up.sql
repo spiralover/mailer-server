@@ -9,5 +9,7 @@ CREATE TABLE permissions
     deleted_at      TIMESTAMP    NULL     DEFAULT NULL
 );
 
+SELECT auto_handle_updated_at('permissions');
+
 ALTER TABLE permissions
     ADD CONSTRAINT fk_permissions_created_by FOREIGN KEY (created_by) REFERENCES users (user_id);

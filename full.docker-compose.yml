@@ -11,9 +11,10 @@ services:
       - .env
       - apps/user/.env
     environment:
-      TZ: "${MAILER_TIMEZONE}"
+      DB_HOST: "database"
+      DB_PORT: "${MAILER_DB_PORT}"
     volumes:
-      - "${MAILER_DOCKER_VOLUME_PATH}/uploads:/var/www/mailer/static/uploads"
+      - "/spiralover/mailer/uploads:/var/www/mailer/static/uploads"
     ports:
       - "${MAILER_DOCKER_DNS_PREFIX}.1:4401:4401"
       - "${MAILER_DOCKER_PRIVATE_IP}:4401:4401"
@@ -25,6 +26,9 @@ services:
       - "${MAILER_DOCKER_DNS_PREFIX}.254"
     extra_hosts:
       - host.docker.internal:host-gateway
+    depends_on:
+      - database
+      - redis
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://user-service:4401/system/docker-health-check" ]
       interval: 1m30s
@@ -42,7 +46,8 @@ services:
       - .env
       - apps/executor/.env
     environment:
-      TZ: "${MAILER_TIMEZONE}"
+      DB_HOST: "database"
+      DB_PORT: "${MAILER_DB_PORT}"
     ports:
       - "${MAILER_DOCKER_DNS_PREFIX}.1:4402:4402"
       - "${MAILER_DOCKER_PRIVATE_IP}:4402:4402"
@@ -54,12 +59,63 @@ services:
       - "${MAILER_DOCKER_DNS_PREFIX}.254"
     extra_hosts:
       - host.docker.internal:host-gateway
+    depends_on:
+      - database
+      - redis
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://executor-service:4402/system/docker-health-check" ]
       interval: 1m30s
       timeout: 5s
       retries: 3
       start_period: 30s
+
+  database:
+    container_name: mailer-database
+    restart: always
+    image: postgres:16.1-alpine3.18
+    environment:
+      PGPORT: "${MAILER_DB_PORT}"
+      POSTGRES_DB: "${MAILER_DB_DATABASE}"
+      POSTGRES_USER: "${MAILER_DB_USERNAME}"
+      POSTGRES_PASSWORD: "${MAILER_DB_PASSWORD}"
+    volumes:
+      - "/spiralover/mailer/postgresql/data:/var/lib/postgresql/data"
+    env_file:
+      - .env
+    ports:
+      - "${MAILER_DOCKER_DNS_PREFIX}.1:${MAILER_DB_PORT}:${MAILER_DB_PORT}"
+    networks:
+      - mailer-main
+    dns:
+      - "${MAILER_DOCKER_DNS_PREFIX}.254"
+    healthcheck:
+      test: [ "CMD-SHELL", "sh -c 'pg_isready -U ${MAILER_DB_USERNAME} -d ${MAILER_DB_DATABASE}'" ]
+      interval: 1m30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  redis:
+    image: redis:7.2-alpine3.18
+    container_name: mailer-redis
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - "/spiralover/mailer/redis/data:/data"
+    environment:
+      REDIS_PASSWORD: "${MAILER_REDIS_PASSWORD}"
+    networks:
+      - mailer-main
+    dns:
+      - "${MAILER_DOCKER_DNS_PREFIX}.254"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      interval: 1m30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    command: "redis-server --loglevel warning --port ${MAILER_REDIS_PORT} --requirepass '${MAILER_REDIS_PASSWORD}'"
 
 networks:
   mailer-main:

@@ -6,5 +6,7 @@ CREATE TABLE mail_errors
     created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+SELECT auto_handle_updated_at('mail_errors');
+
 ALTER TABLE mail_errors
     ADD CONSTRAINT fk_mail_errors_mail_id FOREIGN KEY (mail_id) REFERENCES mails (mail_id);

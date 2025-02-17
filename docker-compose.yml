@@ -6,7 +6,7 @@ services:
     restart: always
     build:
       context: .
-      dockerfile: apps/user/Dockerfile
+    command: user
     env_file:
       - .env
       - apps/user/.env
@@ -31,13 +31,18 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "500m"
+        max-file: "50"
 
   executor-service:
     container_name: mailer-executor-service
     restart: always
     build:
       context: .
-      dockerfile: apps/executor/Dockerfile
+    command: executor
     env_file:
       - .env
       - apps/executor/.env
@@ -60,6 +65,11 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "500m"
+        max-file: "50"
 
 networks:
   mailer-main:

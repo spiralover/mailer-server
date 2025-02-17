@@ -6,7 +6,6 @@ services:
     restart: always
     build:
       context: .
-      dockerfile: apps/user/Dockerfile
     command: user
     env_file:
       - .env
@@ -43,7 +42,6 @@ services:
     restart: always
     build:
       context: .
-      dockerfile: apps/executor/Dockerfile
     command: executor
     env_file:
       - .env

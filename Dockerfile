@@ -31,7 +31,7 @@ COPY . .
 WORKDIR /spiralover/mailer-server
 
 # Build application
-RUN cargo build --release --bin user
+RUN cargo build --release
 
 # BUILD
 FROM ${MAILER_IMAGE} AS runtime

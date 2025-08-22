@@ -3,16 +3,15 @@ use std::num::NonZeroUsize;
 use std::time::Duration;
 
 use actix_web::rt::time;
-use futures_util::StreamExt;
-use log::{error, info};
+use log::error;
 use mobc::Manager;
 use mobc::{async_trait, Pool};
-use redis::aio::Connection;
-use redis::{Client, Msg};
+pub use redis;
+pub use redis::aio::MultiplexedConnection;
+use redis::Client;
 use tokio::runtime::Handle;
 
 use crate::helpers::once_lock::OnceLockHelper;
-use crate::results::redis_result::RedisResultToAppResult;
 use crate::results::AppResult;
 use crate::MAILER;
 
@@ -32,16 +31,17 @@ impl RedisConnectionManager {
 
 #[async_trait]
 impl Manager for RedisConnectionManager {
-    type Connection = Connection;
+    type Connection = MultiplexedConnection;
     type Error = redis::RedisError;
 
     async fn connect(&self) -> Result<Self::Connection, Self::Error> {
-        let c = self.client.get_tokio_connection().await?;
+        let c = self.client.get_multiplexed_tokio_connection().await?;
         Ok(c)
     }
 
     async fn check(&self, mut conn: Self::Connection) -> Result<Self::Connection, Self::Error> {
-        redis::cmd("PING").query_async(&mut conn).await?;
+        // Fix: Explicitly specify the return type for the PING command
+        let _: String = redis::cmd("PING").query_async(&mut conn).await?;
         Ok(conn)
     }
 }
@@ -104,39 +104,5 @@ impl Redis {
                 }
             };
         }
-    }
-
-    pub async fn subscribe<F, Fut>(channel: String, func: F) -> AppResult<()>
-    where
-        F: FnOnce(AppResult<String>) -> Fut + Copy + Send + 'static,
-        Fut: Future<Output = AppResult<()>> + Send + 'static,
-    {
-        let conn = MAILER.app().redis.get_tokio_connection().await?;
-
-        info!("subscribing to: {}", channel.clone());
-
-        let mut pubsub = conn.into_pubsub();
-        pubsub.subscribe(&[channel.clone()]).await?;
-
-        let mut stream = pubsub.into_on_message();
-        while let Some(msg) = stream.next().await {
-            let channel = channel.clone();
-            Handle::current().spawn(async move {
-                let msg: Msg = msg; // to make RustRover happy
-                let received = msg.get_payload::<String>().into_app_result();
-
-                match func(received).await {
-                    Ok(_) => {}
-                    Err(err) => {
-                        error!(
-                            "[channel-executor][{}] executor returned error: {:?}",
-                            channel, err
-                        );
-                    }
-                };
-            });
-        }
-
-        Ok(())
     }
 }

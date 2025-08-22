@@ -1,5 +1,5 @@
-use actix_web::{delete, get, HttpRequest, patch, post, put};
 use actix_web::web::{block, Json, Path, Query, ServiceConfig};
+use actix_web::{delete, get, patch, post, put, HttpRequest};
 use uuid::Uuid;
 
 use cosmic::enums::auth_permission::AuthPermission;

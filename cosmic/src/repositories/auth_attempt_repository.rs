@@ -7,10 +7,10 @@ use crate::helpers::db::{DatabaseConnectionHelper, OptionalResult};
 use crate::helpers::db_pagination::Paginate;
 use crate::helpers::http::QueryParams;
 use crate::helpers::time::current_timestamp;
-use crate::models::auth_attempt::{AuthAttempt, AuthAttemptStatus, CreateDto};
 use crate::helpers::DBPool;
-use crate::results::{AppPaginationResult, AppResult};
+use crate::models::auth_attempt::{AuthAttempt, AuthAttemptStatus, CreateDto};
 use crate::results::app_result::FormatAppResult;
+use crate::results::{AppPaginationResult, AppResult};
 use crate::schema::auth_attempts;
 
 pub struct AuthAttemptRepository;
@@ -113,11 +113,11 @@ impl AuthAttemptRepository {
                     auth_attempts::status.eq(AuthAttemptStatus::PendingVerification.to_string()),
                 ),
         )
-            .set((
-                auth_attempts::status.eq(AuthAttemptStatus::InvalidatedToken.to_string()),
-                auth_attempts::updated_at.eq(current_timestamp()),
-            ))
-            .execute(&mut pool.conn())
-            .into_app_result()
+        .set((
+            auth_attempts::status.eq(AuthAttemptStatus::InvalidatedToken.to_string()),
+            auth_attempts::updated_at.eq(current_timestamp()),
+        ))
+        .execute(&mut pool.conn())
+        .into_app_result()
     }
 }

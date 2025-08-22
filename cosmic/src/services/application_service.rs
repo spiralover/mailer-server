@@ -3,7 +3,9 @@ use uuid::Uuid;
 
 use crate::helpers::db::DatabaseConnectionHelper;
 use crate::helpers::DBPool;
-use crate::models::application::{Application, ApplicationStatus, ApplicationCreateForm, ApplicationUpdateForm};
+use crate::models::application::{
+    Application, ApplicationCreateForm, ApplicationStatus, ApplicationUpdateForm,
+};
 use crate::repositories::application_repository::{app_stringy_status, ApplicationRepository};
 use crate::results::app_result::FormatAppResult;
 use crate::results::AppResult;
@@ -20,7 +22,12 @@ impl ApplicationService {
         ApplicationRepository.create(pool, created_by, data)
     }
 
-    pub fn update(&mut self, pool: &DBPool, id: Uuid, form: ApplicationUpdateForm) -> AppResult<Application> {
+    pub fn update(
+        &mut self,
+        pool: &DBPool,
+        id: Uuid,
+        form: ApplicationUpdateForm,
+    ) -> AppResult<Application> {
         ApplicationRepository.update(pool, id, form)
     }
 

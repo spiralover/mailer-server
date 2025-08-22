@@ -12,6 +12,7 @@ pub mod http;
 pub mod id_generator;
 pub mod misc;
 pub mod number;
+pub mod once_lock;
 pub mod request;
 pub mod responder;
 pub mod security;
@@ -19,7 +20,6 @@ pub mod string;
 pub mod time;
 pub mod uuid;
 pub mod validator;
-pub mod once_lock;
 
 pub fn get_db_conn(pool: &DBPool) -> PooledConnection<ConnectionManager<PgConnection>> {
     pool.get()

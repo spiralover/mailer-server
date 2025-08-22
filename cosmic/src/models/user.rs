@@ -1,6 +1,6 @@
 use diesel::{AsChangeset, Identifiable, Insertable, Queryable};
 use serde::{Deserialize, Serialize};
-use strum_macros::{Display, EnumString, EnumVariantNames};
+use strum_macros::{Display, EnumString, VariantNames};
 use uuid::Uuid;
 use validator::Validate;
 
@@ -196,7 +196,7 @@ pub struct UserCacheData {
     pub roles: Vec<String>,
 }
 
-#[derive(Clone, PartialEq, Display, Debug, EnumString, EnumVariantNames)]
+#[derive(Clone, PartialEq, Display, Debug, EnumString, VariantNames)]
 #[strum(serialize_all = "snake_case")]
 pub enum UserStatus {
     Active,
@@ -204,7 +204,7 @@ pub enum UserStatus {
     Pending,
 }
 
-#[derive(Clone, Display, Debug, EnumString, EnumVariantNames)]
+#[derive(Clone, Display, Debug, EnumString, VariantNames)]
 #[strum(serialize_all = "snake_case")]
 pub enum TempPasswordStatus {
     Used,
@@ -282,7 +282,7 @@ pub struct EmailForm {
 
 #[derive(Deserialize, Validate)]
 pub struct PasswordForm {
-    #[validate(must_match = "password_confirmation")]
+    #[validate(must_match(other = "password_confirmation"))]
     #[validate(length(min = 3, max = 50))]
     pub password: String,
 

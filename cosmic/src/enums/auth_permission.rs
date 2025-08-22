@@ -1,6 +1,6 @@
-use strum_macros::{Display, EnumString, EnumVariantNames};
+use strum_macros::{Display, EnumString, VariantNames};
 
-#[derive(Clone, Display, Debug, EnumString, EnumVariantNames)]
+#[derive(Clone, Display, Debug, EnumString, VariantNames)]
 #[strum(serialize_all = "snake_case")]
 pub enum AuthPermission {
     MiscUploadTempFile,

@@ -2,7 +2,7 @@
 
 use diesel::{AsChangeset, Identifiable, Insertable, Queryable};
 use serde::{Deserialize, Serialize};
-use strum_macros::{Display, EnumString, EnumVariantNames};
+use strum_macros::{Display, EnumString, VariantNames};
 use uuid::Uuid;
 
 use super::super::schema::roles;
@@ -24,7 +24,7 @@ pub struct Role {
     pub deleted_at: Option<chrono::NaiveDateTime>,
 }
 
-#[derive(Clone, Display, Debug, EnumString, EnumVariantNames)]
+#[derive(Clone, Display, Debug, EnumString, VariantNames)]
 #[strum(serialize_all = "snake_case")]
 pub enum RoleStatus {
     Active,

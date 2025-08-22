@@ -3,11 +3,11 @@ use std::ops::DerefMut;
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use uuid::Uuid;
 
-use crate::helpers::time::current_timestamp;
 use crate::helpers::get_db_conn;
-use crate::models::DBPool;
+use crate::helpers::time::current_timestamp;
 use crate::models::mail::MailBox;
-use crate::models::mail_address::{MailAddress, MailAddressesSorted, MailAddressType};
+use crate::models::mail_address::{MailAddress, MailAddressType, MailAddressesSorted};
+use crate::models::DBPool;
 use crate::results::app_result::FormatAppResult;
 use crate::results::AppResult;
 use crate::schema::mail_addresses;
@@ -21,7 +21,7 @@ impl MailAddressRepository {
             .get_results::<MailAddress>(get_db_conn(pool).deref_mut())
             .into_app_result()?;
 
-        let filter = | addr_type: MailAddressType| -> Vec<MailAddress> {
+        let filter = |addr_type: MailAddressType| -> Vec<MailAddress> {
             addresses
                 .iter()
                 .filter(|addr| addr.addr_type == addr_type.to_string())

@@ -9,4 +9,3 @@ pub fn main_controller_guest(cfg: &mut ServiceConfig) {
 async fn index() -> Redirect {
     Redirect::to("https://spiralover.com")
 }
-

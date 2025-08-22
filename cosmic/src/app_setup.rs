@@ -13,7 +13,6 @@ use redis::Client;
 use tera::Tera;
 
 use crate::app_state::{AppRedisQueues, AppServices, AppState};
-use crate::MAILER;
 use crate::helpers::fs::get_cwd;
 use crate::models::mail::MailBox;
 use crate::models::DBPool;
@@ -21,6 +20,7 @@ use crate::redis::{RedisConnectionManager, RedisPool};
 use crate::services::cache_service::CacheService;
 use crate::services::redis_next_service::RedisNextService;
 use crate::services::redis_service::RedisService;
+use crate::MAILER;
 
 const CACHE_POOL_MAX_OPEN: u64 = 16;
 const CACHE_POOL_MAX_IDLE: u64 = 8;

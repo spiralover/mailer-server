@@ -3,9 +3,9 @@ use std::ops::DerefMut;
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use uuid::Uuid;
 
-use crate::helpers::db::{OptionalResult};
-use crate::helpers::time::current_timestamp;
+use crate::helpers::db::OptionalResult;
 use crate::helpers::get_db_conn;
+use crate::helpers::time::current_timestamp;
 use crate::models::mail::{Mail, MailQueueablePayload, MailStatus};
 use crate::models::DBPool;
 use crate::results::app_result::FormatAppResult;

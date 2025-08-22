@@ -44,4 +44,3 @@ async fn delete_personal_access_token(req: HttpRequest, id: Path<Uuid>) -> HttpR
     .await
     .respond()
 }
-

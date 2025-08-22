@@ -3,7 +3,7 @@
 use derive_more::Display;
 use diesel::{AsChangeset, Identifiable, Insertable, Queryable};
 use serde::{Deserialize, Serialize};
-use strum_macros::{EnumString, EnumVariantNames};
+use strum_macros::{EnumString, VariantNames};
 use uuid::Uuid;
 
 use super::super::schema::password_resets;
@@ -25,7 +25,7 @@ pub struct PasswordReset {
     pub updated_at: chrono::NaiveDateTime,
 }
 
-#[derive(Clone, Display, Debug, EnumString, EnumVariantNames)]
+#[derive(Clone, Display, Debug, EnumString, VariantNames)]
 #[strum(serialize_all = "snake_case")]
 pub enum PasswordResetStatus {
     AwaitingVerification,

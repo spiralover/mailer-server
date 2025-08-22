@@ -177,9 +177,7 @@ impl MailService {
             Err(err) => {
                 error!(
                     "[{}] Failed to send mail #{}, [error: {}], re-queueing...",
-                    thread_name,
-                    subject,
-                    err.to_string()
+                    thread_name, subject, err
                 );
                 let _ = self.push_to_failure_notification_queue(
                     app,

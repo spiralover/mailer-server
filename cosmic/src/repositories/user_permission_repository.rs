@@ -1,5 +1,5 @@
-use diesel::{ExpressionMethods, PgTextExpressionMethods, QueryDsl, RunQueryDsl, SaveChangesDsl};
 use diesel::dsl::not;
+use diesel::{ExpressionMethods, PgTextExpressionMethods, QueryDsl, RunQueryDsl, SaveChangesDsl};
 use uuid::Uuid;
 
 use crate::helpers::db::{DatabaseConnectionHelper, OptionalResult};

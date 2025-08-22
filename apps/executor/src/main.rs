@@ -1,9 +1,12 @@
-use std::sync::{Arc, Mutex};
 use actix_web::{App, HttpServer};
 use env_logger::Env;
 use log::info;
+use std::sync::{Arc, Mutex};
 
-use cosmic::app_setup::{load_environment_variables, make_app_state, get_server_host_config, get_worker_configs, make_thread_name};
+use cosmic::app_setup::{
+    get_server_host_config, get_worker_configs, load_environment_variables, make_app_state,
+    make_thread_name,
+};
 use cosmic::http::kernel::{actix_default_service, register_routes, setup_logger};
 
 use crate::background_service::create_background_service;

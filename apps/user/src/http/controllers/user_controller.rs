@@ -352,7 +352,7 @@ async fn add_menu_item(
             if let Ok(item) = res {
                 items.push(item);
             } else {
-                error!("{}", res.unwrap_err().to_string());
+                error!("{}", res.unwrap_err());
             }
         }
 

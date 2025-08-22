@@ -26,8 +26,8 @@ use crate::services::user_service::UserService;
 use crate::MAILER;
 
 pub fn has_permission<F>(req: HttpRequest, p: AuthPermission, f: F) -> HttpResult
-    where
-        F: FnOnce() -> HttpResult,
+where
+    F: FnOnce() -> HttpResult,
 {
     let checked_permission = check_permission(req, p);
     let has_permission = checked_permission.is_ok();

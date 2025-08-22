@@ -24,8 +24,8 @@ impl CacheService {
     }
 
     pub fn put<T>(&mut self, key: &str, value: T) -> AppResult<String>
-        where
-            T: Serialize,
+    where
+        T: Serialize,
     {
         self.redis.set(key.to_string(), value).into_app_result()
     }
@@ -49,9 +49,9 @@ impl CacheService {
     }
 
     pub fn get_or_put<'v, Val, Fun>(&mut self, key: &str, setter: Fun) -> AppResult<Val>
-        where
-            Val: Serialize + Deserialize<'v> + Clone,
-            Fun: FnOnce(&mut Self) -> AppResult<Val>,
+    where
+        Val: Serialize + Deserialize<'v> + Clone,
+        Fun: FnOnce(&mut Self) -> AppResult<Val>,
     {
         let result = self
             .redis
@@ -84,10 +84,10 @@ impl CacheService {
         key: &str,
         setter: Fun,
     ) -> AppResult<Val>
-        where
-            Val: Serialize + Deserialize<'v> + Clone,
-            Fun: FnOnce(&mut Self) -> Fut + Send + 'static,
-            Fut: Future<Output = AppResult<Val>> + Send + 'static,
+    where
+        Val: Serialize + Deserialize<'v> + Clone,
+        Fun: FnOnce(&mut Self) -> Fut + Send + 'static,
+        Fut: Future<Output = AppResult<Val>> + Send + 'static,
     {
         let result = self
             .redis

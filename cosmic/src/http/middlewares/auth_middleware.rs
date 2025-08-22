@@ -32,10 +32,10 @@ impl AuthMiddleware {
 }
 
 impl<S, B> Transform<S, ServiceRequest> for AuthMiddleware
-    where
-        S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
-        S::Future: 'static,
-        B: 'static,
+where
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
+    S::Future: 'static,
+    B: 'static,
 {
     type Response = ServiceResponse<EitherBody<B>>;
     type Error = Error;
@@ -57,10 +57,10 @@ pub struct AuthMiddlewareInternal<S> {
 }
 
 impl<S, B> Service<ServiceRequest> for AuthMiddlewareInternal<S>
-    where
-        S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
-        S::Future: 'static,
-        B: 'static,
+where
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
+    S::Future: 'static,
+    B: 'static,
 {
     type Response = ServiceResponse<EitherBody<B>>;
     type Error = Error;

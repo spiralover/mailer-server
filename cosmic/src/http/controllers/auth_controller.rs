@@ -1,16 +1,14 @@
-use actix_web::{get, HttpRequest, post};
 use actix_web::web::{block, Data, Json, Path, ServiceConfig};
+use actix_web::{get, post, HttpRequest};
 
 use crate::app_state::AppState;
 use crate::enums::app_message::AppMessage::{SuccessMessageStr, WarningMessageStr};
-use crate::helpers::DBPool;
 use crate::helpers::request::RequestHelper;
+use crate::helpers::DBPool;
 use crate::http::middlewares::manual_auth_middleware::ManualAuthMiddleware;
 use crate::models::auth_attempt::LoginToken;
 use crate::models::password_reset::PasswordResetCreateDto;
-use crate::models::user::{
-    EmailForm, LoginForm, PasswordForm, UserRegisterForm,
-};
+use crate::models::user::{EmailForm, LoginForm, PasswordForm, UserRegisterForm};
 use crate::repositories::password_reset_repository::PasswordResetRepository;
 use crate::results::http_result::ActixBlockingResultResponder;
 use crate::results::HttpResult;
@@ -51,8 +49,8 @@ async fn resend_verification_code(data: Json<EmailForm>, app: Data<AppState>) ->
             .resend_device_verification_code(app.into_inner(), data.into_inner().email)
             .map(|_| SuccessMessageStr("Device verification code has been resent"))
     })
-        .await
-        .respond()
+    .await
+    .respond()
 }
 
 #[post("verify-device")]
@@ -62,8 +60,8 @@ async fn verify_device(pool: Data<DBPool>, data: Json<LoginToken>) -> HttpResult
             .verify_device(pool.get_ref(), data.into_inner().code)
             .map_err(|_| WarningMessageStr("Invalid device verification code"))
     })
-        .await
-        .respond()
+    .await
+    .respond()
 }
 
 #[get("me")]
@@ -74,8 +72,8 @@ async fn me(req: HttpRequest, pool: Data<DBPool>, _: ManualAuthMiddleware) -> Ht
             .get_profile(pool.get_ref(), auth_id)
             .map_err(|_| WarningMessageStr("Failed to get profile"))
     })
-        .await
-        .respond()
+    .await
+    .respond()
 }
 
 #[get("profile")]
@@ -118,8 +116,8 @@ async fn send_password_reset_link(
             )
             .map(|_| SuccessMessageStr("Password reset link has been sent to your email"))
     })
-        .await
-        .respond()
+    .await
+    .respond()
 }
 
 #[post("reset-password/{token}")]
@@ -133,8 +131,8 @@ async fn reset_password(
             .reset_password(app.into_inner(), token.into_inner(), form.into_inner())
             .map(|_| SuccessMessageStr("Your password has been changed"))
     })
-        .await
-        .respond()
+    .await
+    .respond()
 }
 
 #[get("verify-password-reset-token/{token}")]
@@ -144,8 +142,8 @@ async fn verify_password_reset_token(pool: Data<DBPool>, token: Path<String>) ->
             .find_active_by_token(pool.get_ref(), token.into_inner())
             .map(|_| SuccessMessageStr("link verified"))
     })
-        .await
-        .respond()
+    .await
+    .respond()
 }
 
 #[get("email-verification/{token}")]
@@ -155,8 +153,8 @@ async fn email_verification(pool: Data<DBPool>, token: Path<String>) -> HttpResu
             .verify_email(pool.get_ref(), token.into_inner())
             .map(|_| SuccessMessageStr("account verified"))
     })
-        .await
-        .respond()
+    .await
+    .respond()
 }
 
 #[post("resend-email-verification")]
@@ -166,6 +164,6 @@ async fn resend_email_verification(app: Data<AppState>, form: Json<EmailForm>) -
             .resend_email_confirmation(app.into_inner(), form.into_inner().email)
             .map(|_| SuccessMessageStr("account verification code sent"))
     })
-        .await
-        .respond()
+    .await
+    .respond()
 }

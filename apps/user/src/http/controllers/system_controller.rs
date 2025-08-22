@@ -160,8 +160,7 @@ async fn database_seed(app: Data<AppState>) -> HttpResponse {
 fn get_random_uuid(ids: &[Uuid]) -> &Uuid {
     let length = ids.len() as i64;
     let upper_bound = (length - 1) as usize;
-    ids.get(rand::thread_rng().gen_range(0..upper_bound))
-        .unwrap()
+    ids.get(rand::rng().random_range(0..upper_bound)).unwrap()
 }
 
 async fn seed_users(app: Arc<AppState>) {

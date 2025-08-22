@@ -1,7 +1,7 @@
-use crate::helpers::time::current_timestamp;
-use crate::helpers::db_pagination::{Paginate, PageData};
+use crate::helpers::db_pagination::{PageData, Paginate};
 use crate::helpers::get_db_conn;
 use crate::helpers::http::QueryParams;
+use crate::helpers::time::current_timestamp;
 use crate::models::mail_error::MailError;
 use crate::models::DBPool;
 use crate::results::app_result::FormatAppResult;

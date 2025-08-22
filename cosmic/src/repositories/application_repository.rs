@@ -9,7 +9,9 @@ use crate::helpers::db_pagination::Paginate;
 use crate::helpers::http::QueryParams;
 use crate::helpers::time::current_timestamp;
 use crate::helpers::DBPool;
-use crate::models::application::{Application, ApplicationStatus, ApplicationCreateForm, ApplicationUpdateForm};
+use crate::models::application::{
+    Application, ApplicationCreateForm, ApplicationStatus, ApplicationUpdateForm,
+};
 use crate::results::app_result::FormatAppResult;
 use crate::results::{AppPaginationResult, AppResult};
 use crate::schema::applications;
@@ -61,7 +63,12 @@ impl ApplicationRepository {
             .into_app_result()
     }
 
-    pub fn update(&mut self, pool: &DBPool, id: Uuid, form: ApplicationUpdateForm) -> AppResult<Application> {
+    pub fn update(
+        &mut self,
+        pool: &DBPool,
+        id: Uuid,
+        form: ApplicationUpdateForm,
+    ) -> AppResult<Application> {
         let mut app = self.find_by_id(pool, id)?;
         app.name = form.name;
         app.code = form.code;

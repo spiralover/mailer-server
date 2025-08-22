@@ -15,7 +15,10 @@ use crate::helpers::string::{password_hash, string};
 use crate::helpers::time::current_timestamp;
 use crate::helpers::DBPool;
 use crate::models::mail::MailBox;
-use crate::models::user::{FullName, User, UserRegisterForm, UserSharableData, UserStatus, UserUpdateForm, UsernameAvailability, UserCacheable, UserCacheData};
+use crate::models::user::{
+    FullName, User, UserCacheData, UserCacheable, UserRegisterForm, UserSharableData, UserStatus,
+    UserUpdateForm, UsernameAvailability,
+};
 use crate::repositories::user_repository::UserRepository;
 use crate::results::app_result::FormatAppResult;
 use crate::results::AppResult;

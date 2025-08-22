@@ -1,7 +1,7 @@
-use crate::results::AppResult;
-use crate::models::permission::Permission;
 use crate::helpers::DBPool;
+use crate::models::permission::Permission;
 use crate::repositories::permission_repository::PermissionRepository;
+use crate::results::AppResult;
 use uuid::Uuid;
 
 pub struct PermissionService;

@@ -1,4 +1,4 @@
-ARG MAILER_IMAGE=rust:1.79-slim-bookworm
+ARG MAILER_IMAGE=rust:1.89-slim-bookworm
 
 # Build
 FROM ${MAILER_IMAGE} as planner

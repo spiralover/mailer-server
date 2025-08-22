@@ -2,10 +2,10 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use actix_multipart::form::tempfile::TempFile;
+use actix_web::http::StatusCode;
 use diesel::SaveChangesDsl;
 use log::error;
 use nanoid::nanoid;
-use reqwest::StatusCode;
 use uuid::Uuid;
 
 use crate::app_state::AppState;

@@ -57,10 +57,15 @@ impl RoleService {
         UserRoleRepository.create(pool, created_by, role_id, user_id)
     }
 
-    pub fn un_assign_user_role(&mut self, pool: &DBPool, user_role_id: Uuid) -> AppResult<AppMessage> {
+    pub fn un_assign_user_role(
+        &mut self,
+        pool: &DBPool,
+        user_role_id: Uuid,
+    ) -> AppResult<AppMessage> {
         let mut ur = UserRoleRepository.find_by_id(pool, user_role_id)?;
         ur.deleted_at = Some(current_timestamp());
-        ur.save_changes::<UserRole>(&mut pool.conn()).into_app_result()?;
+        ur.save_changes::<UserRole>(&mut pool.conn())
+            .into_app_result()?;
 
         Ok(AppMessage::SuccessMessageStr("removed"))
     }

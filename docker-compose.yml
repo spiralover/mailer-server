@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   user-service:
     container_name: mailer-user-service

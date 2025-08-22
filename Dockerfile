@@ -1,7 +1,7 @@
 ARG MAILER_IMAGE=rust:1.89-slim-bookworm
 
 # Build
-FROM ${MAILER_IMAGE} as planner
+FROM ${MAILER_IMAGE} AS planner
 RUN cargo install cargo-chef
 
 # Set work directory
@@ -11,7 +11,7 @@ COPY . .
 # Prepare a build plan ("recipe")
 RUN cargo chef prepare --recipe-path recipe.json
 
-FROM ${MAILER_IMAGE} as build
+FROM ${MAILER_IMAGE} AS build
 RUN cargo install cargo-chef
 
 # Install postgres library

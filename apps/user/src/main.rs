@@ -1,7 +1,7 @@
 use std::env;
 
 use actix_files::Files;
-use actix_web::web::Data;
+use actix_web::web::{Data, JsonConfig};
 use actix_web::App;
 use actix_web::HttpServer;
 use env_logger::Env;
@@ -34,6 +34,7 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
+            .app_data(JsonConfig::default().limit(5 * 1024 * 1024))
             .app_data(Data::new(app_state.clone()))
             .app_data(Data::new(app_state.database().clone()))
             .service(Files::new("/resources/static", "./resources/static"))
